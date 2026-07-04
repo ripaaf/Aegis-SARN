@@ -1,0 +1,156 @@
+# Roadmap and Release Gates
+
+## 1. Roadmap Rules
+
+This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection. Later phases do not imply that every earlier experimental module was accepted.
+
+No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
+
+## Phase 0 — Authoritative Specification
+
+**Goal:** establish scope, vocabulary, boundaries, evidence rules, and the first executable slice.
+
+**Deliverables:** documentation map; vision and non-goals; Aegis/SARN separation; architecture and interfaces; model research plan; data, training, evaluation, safety, runtime, risk, and repository plans; decision log; open-question register.
+
+**Exit gate:** links and terminology are consistent; every proposed component is marked as baseline, framework, experiment, risk, or future extension; the first coding issue can be implemented without inventing a new architecture.
+
+## Phase 1 — Dense Micro-Model and Framework Spine
+
+**Goal:** prove end-to-end correctness on one machine.
+
+**SARN deliverables:** validated configs; reference tokenizer path; RoPE causal attention; decoder block and dense micro-model; tiny generated data; one-batch overfit; training/evaluation loop; atomic checkpoint; greedy and sampled generation.
+
+**Aegis deliverables:** run schemas; configuration resolver; artifact manifest; deterministic fake backend; SARN backend; session state machine; token/time budgets; structured trace; CLI.
+
+**Exit gate:** automated causal-mask, checkpoint-resume, KV-cache parity, config, state-machine, and end-to-end tests pass; a clean clone can reproduce the smoke run from documentation.
+
+## Phase 2 — Reproducible Tiny Baseline
+
+**Goal:** create the scientific control for all architecture research.
+
+**Deliverables:** tokenizer study and frozen tokenizer; governed initial datasets; micro and tiny SARN-Dense checkpoints; multi-seed training; language loss and synthetic generalization baselines; model/data/evaluation cards; systems measurements on reference CPU and accelerator where available.
+
+**Exit gate:** baseline runs are reproducible within declared tolerances; held-out evaluation is separated; all artifacts and lineage resolve; no unresolved correctness defect invalidates metrics.
+
+## Phase 3 — Evaluation and Experiment Platform
+
+**Goal:** make novel claims cheap to test and hard to fool ourselves about.
+
+**Deliverables:** versioned synthetic generators; structural splits; experiment preregistration schema; run registry; aggregation with confidence intervals; ablation templates; contamination checks; scaling observatory; failure-preserving reports.
+
+**Exit gate:** an intentionally null architecture change produces no false “win”; repeated baseline runs quantify normal variance; raw-to-report lineage is auditable.
+
+## Phase 4 — Efficient Attention
+
+**Goal:** reduce decode memory/cost without unmeasured quality loss.
+
+**Experiments:** MHA versus GQA; KV-cache precision; optional local attention; RoPE context behavior and carefully selected scaling methods.
+
+**Exit gate:** at least one profile shows a practically meaningful measured benefit at or above its quality floor, or all tested variants are documented as rejected. Accepted settings remain configurable rather than deleting the reference path.
+
+## Phase 5 — Latent Workspace and Graph Research
+
+**Goal:** test whether bounded latent recurrence/message passing improves systematic tasks.
+
+**Deliverables:** workspace-only control; graph variants; soft/hard routing; top-k diagnostics; multi-cycle execution; visualizations labeled as latent states; full equal-compute and null ablations.
+
+**Exit gate:** a variant passes the [benchmark acceptance gates](benchmarks.md), including held-out structural shifts and multi-seed evidence, or the hypothesis is narrowed/rejected. No human-concept claim is accepted without causal interpretability evidence.
+
+## Phase 6 — Resettable Working Memory
+
+**Goal:** improve temporary association/state tasks without online weight mutation.
+
+**Deliverables:** at least one simple key/value control; one neural or fast-weight mechanism; optional Hebbian-style update; strict allocation/reset/isolation; conflict, capacity, poisoning, and leakage evaluations; Aegis lifecycle integration.
+
+**Exit gate:** improvement over both token-context and simple external-memory controls at matched budget, with complete reset and no cross-session leakage. Otherwise prefer the simpler framework memory.
+
+## Phase 7 — Sequence Architecture Research
+
+**Goal:** evaluate attention, SSM, and hybrid behavior on relevant long-sequence workloads.
+
+**Deliverables:** selected Mamba-style or equivalent SSM reference; attention-only, SSM-only, and hybrid controls; kernel and complexity profiling; long-context and ordinary-language regression suite.
+
+**Exit gate:** a target profile/workload has better quality-cost tradeoff with stable training. “Linear complexity” alone is not an exit criterion.
+
+## Phase 8 — Sparse Expert Research
+
+**Goal:** test conditional capacity at a scale and hardware topology where it can matter.
+
+**Deliverables:** dense control; top-k router; capacity handling; load-balancing metrics/loss; router stability and expert analysis; total versus active parameter and memory reports; expert-parallel measurements if distributed.
+
+**Exit gate:** specialization or quality improves at matched active cost without unacceptable collapse, communication, memory, or edge regressions. MoE may remain server-only or be rejected.
+
+## Phase 9 — Retrieval, Memory Service, and Provenance
+
+**Goal:** give small models governed access to external knowledge.
+
+**Deliverables:** document ingestion; versioned lexical baseline and optional vector/hybrid retrieval; reranking; typed evidence; citation linkage; session memory; persistent-memory proposal/approval path; access-control, deletion, poisoning, and injection tests.
+
+**Exit gate:** retrieval and end-to-end metrics pass independently; unauthorized content is isolated; citations resolve; deletion propagates under the documented SLA; the no-retrieval fallback is explicit.
+
+## Phase 10 — Verification, Repair, and Read-Only Tools
+
+**Goal:** improve time-to-correct-answer while containing effects.
+
+**Deliverables:** verifier registry and assurance classes; deterministic checks for initial code/structured tasks; bounded repair; read-only tool executor; approval and audit flow; adversarial tool tests.
+
+**Exit gate:** check-passing accuracy improves after counting false accepts, false rejects, repair regressions, latency, and coverage; unauthorized calls fail closed; loop budgets cannot be bypassed.
+
+## Phase 11 — Instruction and Preference Post-Training
+
+**Goal:** make accepted checkpoints useful through instructions while preserving measured capability and boundaries.
+
+**Deliverables:** governed SFT set; SFT checkpoint; preference schema and annotator guide; DPO experiment; shortcut audits; calibration and safety suites; structured-call training if needed.
+
+**Exit gate:** practical instruction-following gain with acceptable base-capability, truthfulness, calibration, and safety deltas. Preference tuning is not represented as proof of alignment.
+
+## Phase 12 — Hardware-Adaptive Runtime
+
+**Goal:** choose evaluated configurations for real devices.
+
+**Deliverables:** hardware probes; fit estimator; Nano/Lite/Balanced/Pro profile definitions based on measurements; evaluated quantized artifacts; context/cache planner; capability disclosure; local service; compatibility matrix.
+
+**Exit gate:** each claimed profile passes load, memory pressure, generation, cancellation, quality-floor, and security tests on representative hardware; unsafe fits and missing controls fail closed.
+
+## Phase 13 — Distillation, Pruning, and Fast Decoding
+
+**Goal:** improve deployment Pareto frontiers.
+
+**Experiments:** teacher/student distillation; structured and lottery-ticket-inspired pruning; weight/activation/cache quantization; speculative decoding; optional optimizer studies such as Shampoo for future training efficiency.
+
+**Exit gate:** each artifact improves at least one declared frontier (quality, latency, memory, energy, storage) without crossing required floors, and carries its own evaluation card.
+
+## Phase 14 — Interpretability Program
+
+**Goal:** causally investigate representations and failures in accepted models.
+
+**Deliverables:** activation capture; probes and interventions; SAE artifacts; router/workspace/memory analysis; superposition studies; checkpoint studies around grokking if observed; privacy review.
+
+**Exit gate:** claims have correlation and intervention evidence with stated limits. No interpretability output is promoted directly to a safety authority.
+
+## Phase 15 — Multimodal and Constrained Action Extensions
+
+**Goal:** add one modality or action domain at a time without weakening the core boundary.
+
+**Candidate sequence:** vision input adapter; dedicated segmentation tool; speech; structured action planner; reversible tools; robotics only after independent physical safety design.
+
+**Exit gate:** each extension has its own data/evaluation card, permission model, failure containment, resource profile, and regression suite. Acronym coverage is never an exit criterion.
+
+## Release Milestones
+
+- **0.1 Research Spine:** Phase 1 complete.
+- **0.2 Baseline Lab:** Phases 2–3 complete.
+- **0.3 SARN Experimental:** at least one Phase 4–8 hypothesis decided with evidence.
+- **0.4 Local Knowledge Runtime:** Phase 9 complete.
+- **0.5 Checked Assistant:** Phase 10 and selected Phase 11 work complete.
+- **1.0 Supported Local Platform:** stable APIs, measured hardware profiles, release/security process, and at least one maintained model path. No claim of AGI or universal capability is attached to 1.0.
+
+## Immediate Backlog
+
+1. choose Python/PyTorch and supported CPU/CUDA versions through an ADR;
+2. define configuration and run-manifest schemas;
+3. implement RoPE attention and causal-mask tests;
+4. implement the micro decoder model and generated-copy dataset;
+5. implement one-batch overfit and checkpoint-resume tests;
+6. implement Aegis fake backend, session controller, and CLI;
+7. publish the first reproducible smoke report.
