@@ -6,6 +6,16 @@ This roadmap is ordered by dependency and evidence, not by how advanced a techni
 
 No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
 
+## Implementation Progress — 2026-07-05
+
+- **Phase 0 specification:** complete for the initial implementation boundary.
+- **Phase 1 minimum acceptance slice:** implemented and passing 17 CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, greedy decoding, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, and CLI output.
+- **Acceptance workflow:** a 40-step reference smoke run reduced loss from approximately `5.55` to `0.017`, resumed at step 41, wrote a checkpoint/manifest, reloaded through the Aegis CLI, generated six tokens, and completed a five-event trace.
+- **Phase 1 hardening still open:** KV-cache implementation/parity and optional sampled decoding from the broader workstream.
+- **Later phases:** no SARN-Hybrid, MoE, graph workspace, working memory, SSM, retrieval, tools, or multimodal implementation has started.
+
+This progress note records evidence for the minimum user-facing Phase 1 acceptance contract. It does not override the remaining workstream exit criteria below.
+
 ## Canonical Aegis-X Roadmap
 
 This is the authoritative high-level sequence. Detailed workstreams below preserve implementation and evidence requirements without creating a competing phase numbering system.

@@ -1,6 +1,15 @@
 # Interfaces and Shared Schemas
 
-This document defines conceptual contracts. Concrete JSON Schema or typed classes will be added with implementation. Field names should remain stable unless an architecture decision records a replacement.
+This document defines the full conceptual contracts. Phase 1 implements a deliberately smaller typed subset in `aegis_sarn.config` and `aegis_sarn.aegis.schemas`; field names should remain stable unless an architecture decision records a replacement.
+
+## Phase 1 Implemented Subset
+
+- `RunRequest`: text prompt, request/session IDs, prompt/output token budgets, wall-time budget, seed, and schema version.
+- `RunResult`: explicit status, text content, backend identity, usage, limitations, assurance placeholder, and ordered trace events.
+- `TraceEvent`: run ID, monotonic sequence, event/component identity, UTC timestamp, typed JSON payload, and schema version.
+- configuration dataclasses: model, training, runtime, seed, artifact, and run manifest.
+
+Retrieval capabilities, multipart content envelopes, tools, verifier findings, persistent memory, and full model manifests remain future contracts. The Phase 1 implementation must not imply those capabilities exist.
 
 ## 1. Compatibility Rules
 

@@ -4,7 +4,7 @@ Aegis-SARN is a documentation-first research program to design, implement, and e
 
 This repository is not merely an optimization wrapper around existing models, and it does not claim that a finished replacement algorithm exists today. It is the engineering and research path for proving or rejecting a hybrid architecture that combines efficient sequence modeling, sparse conditional capacity, latent graph computation, resettable working memory, retrieval, verification, interpretability, alignment, and adaptive deployment.
 
-The program has three named parts:
+The program has four named parts:
 
 1. **Aegis Framework** — the hardware-aware runtime and control plane for model execution, retrieval, persistent memory, tools, verification, safety policy, observability, evaluation, and deployment.
 2. **SARN-Dense** — the reproducible decoder-only Transformer baseline and scientific control used to validate the stack and measure every architectural claim.
@@ -15,7 +15,40 @@ The ambition is architectural, not rhetorical. The project does not claim that S
 
 ## Status
 
-**Phase 0 — specification.** There is currently no model, training pipeline, or runtime implementation in this repository. Phase 1 builds SARN-Dense and the Aegis spine; later phases construct SARN-Hybrid and ultimately an Aegis-X experimental system. The documentation defines what will be built, in what order, and what evidence is required before an experimental mechanism becomes a default part of the architecture.
+**Phase 1 — minimum baseline implemented.** The repository now contains a CPU-first SARN-Dense micro model, deterministic generated tasks, smoke training/checkpoint resume, and the minimal Aegis request/backend/trace/CLI spine. SARN-Hybrid, retrieval, tools, working memory, SSM, MoE, and multimodal modules remain unimplemented by design.
+
+## Phase 1 Quickstart
+
+Python 3.11+ and PyTorch 2.2+ are supported. No GPU is required.
+
+```bash
+python -m venv .venv
+```
+
+Activate it with `.venv\Scripts\Activate.ps1` on PowerShell or `source .venv/bin/activate` on POSIX, then run:
+
+```bash
+python -m pip install -e '.[dev]'
+python -m pytest
+```
+
+Run the deterministic CPU smoke trainer. It overfits a generated repeated-pattern batch, resumes the optimizer from its checkpoint, evaluates loss, generates tokens, and writes a JSON manifest:
+
+```bash
+aegis-sarn train-smoke --output-dir artifacts/phase1 --device cpu
+```
+
+Run the saved micro checkpoint through the Aegis controller and print the structured result and trace:
+
+```bash
+aegis-sarn run \
+  --checkpoint artifacts/phase1/sarn-dense-smoke.pt \
+  --prompt 'aegis sarn ' \
+  --max-new-tokens 8 \
+  --device cpu
+```
+
+The byte tokenizer and toy corpus validate the pipeline; this checkpoint is not a useful natural-language model. Generated artifacts are ignored by Git.
 
 ## Start Here
 

@@ -1,0 +1,162 @@
+'''Validated, dependency-light configuration and manifest schemas.'''
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any, Literal
+
+
+class ConfigError(ValueError):
+    '''Raised when a configuration violates a Phase 1 invariant.'''
+
+
+@dataclass(frozen=True, slots=True)
+class ModelConfig:
+    vocab_size: int = 256
+    max_seq_len: int = 64
+    d_model: int = 64
+    n_layers: int = 2
+    n_heads: int = 4
+    n_kv_heads: int | None = None
+    ffn_hidden_dim: int = 192
+    dropout: float = 0.0
+    rope_base: float = 10_000.0
+    rms_norm_eps: float = 1e-6
+    ffn_type: Literal['gated', 'standard'] = 'gated'
+    tie_embeddings: bool = True
+
+    def __post_init__(self) -> None:
+        positive = {
+            'vocab_size': self.vocab_size,
+            'max_seq_len': self.max_seq_len,
+            'd_model': self.d_model,
+            'n_layers': self.n_layers,
+            'n_heads': self.n_heads,
+            'ffn_hidden_dim': self.ffn_hidden_dim,
+        }
+        for name, value in positive.items():
+            if value <= 0:
+                raise ConfigError(f'{name} must be positive')
+        if self.d_model % self.n_heads != 0:
+            raise ConfigError('d_model must be divisible by n_heads')
+        if (self.d_model // self.n_heads) % 2 != 0:
+            raise ConfigError('attention head dimension must be even for RoPE')
+        if not 0.0 <= self.dropout < 1.0:
+            raise ConfigError('dropout must be in [0, 1)')
+        if self.rope_base <= 1.0:
+            raise ConfigError('rope_base must be greater than 1')
+        resolved_kv_heads = self.n_heads if self.n_kv_heads is None else self.n_kv_heads
+        if resolved_kv_heads != self.n_heads:
+            raise ConfigError('Phase 1 supports MHA only; GQA is reserved for Phase 3')
+
+    @property
+    def head_dim(self) -> int:
+        return self.d_model // self.n_heads
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, values: dict[str, Any]) -> ModelConfig:
+        return cls(**values)
+
+
+@dataclass(frozen=True, slots=True)
+class TrainingConfig:
+    learning_rate: float = 3e-3
+    weight_decay: float = 0.0
+    batch_size: int = 8
+    sequence_length: int = 32
+    max_steps: int = 100
+    grad_clip_norm: float | None = 1.0
+    device: str = 'cpu'
+
+    def __post_init__(self) -> None:
+        if self.learning_rate <= 0:
+            raise ConfigError('learning_rate must be positive')
+        if self.weight_decay < 0:
+            raise ConfigError('weight_decay cannot be negative')
+        if self.batch_size <= 0 or self.sequence_length < 2 or self.max_steps <= 0:
+            raise ConfigError(
+                'batch_size/max_steps must be positive and sequence_length >= 2'
+            )
+        if self.grad_clip_norm is not None and self.grad_clip_norm <= 0:
+            raise ConfigError('grad_clip_norm must be positive or None')
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeConfig:
+    device: str = 'cpu'
+    max_prompt_tokens: int = 64
+    max_new_tokens: int = 16
+    wall_time_ms: int = 30_000
+    max_model_calls: int = 1
+
+    def __post_init__(self) -> None:
+        if self.max_prompt_tokens <= 0 or self.max_new_tokens <= 0:
+            raise ConfigError('token budgets must be positive')
+        if self.wall_time_ms <= 0 or self.max_model_calls <= 0:
+            raise ConfigError('wall_time_ms and max_model_calls must be positive')
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class SeedConfig:
+    seed: int = 7
+    deterministic_algorithms: bool = True
+
+    def __post_init__(self) -> None:
+        if self.seed < 0:
+            raise ConfigError('seed cannot be negative')
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactConfig:
+    output_dir: Path = Path('artifacts/phase1')
+    checkpoint_name: str = 'sarn-dense-smoke.pt'
+    manifest_name: str = 'run-manifest.json'
+
+    def __post_init__(self) -> None:
+        if not self.checkpoint_name.endswith('.pt'):
+            raise ConfigError('checkpoint_name must end with .pt')
+        if not self.manifest_name.endswith('.json'):
+            raise ConfigError('manifest_name must end with .json')
+
+    @property
+    def checkpoint_path(self) -> Path:
+        return self.output_dir / self.checkpoint_name
+
+    @property
+    def manifest_path(self) -> Path:
+        return self.output_dir / self.manifest_name
+
+    def to_dict(self) -> dict[str, Any]:
+        values = asdict(self)
+        values['output_dir'] = str(self.output_dir)
+        return values
+
+
+@dataclass(slots=True)
+class RunManifest:
+    run_id: str
+    run_name: str
+    created_at: str
+    status: str
+    model_config: dict[str, Any]
+    training_config: dict[str, Any]
+    seed_config: dict[str, Any]
+    artifacts: dict[str, str] = field(default_factory=dict)
+    metrics: dict[str, float | int | str] = field(default_factory=dict)
+    schema_version: str = 'aegis.run_manifest/v1'
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)

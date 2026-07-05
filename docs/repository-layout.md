@@ -1,8 +1,8 @@
 # Repository and Package Layout
 
-## 1. Intended Tree
+## 1. Phase 1 Tree and Future Growth
 
-The repository begins documentation-only. Implementation should grow into this shape rather than placing everything in one package:
+The implemented Phase 1 package uses one distribution namespace with explicit internal model/runtime boundaries:
 
 ```text
 Aegis-SARN/
@@ -10,76 +10,49 @@ Aegis-SARN/
   LICENSE
   pyproject.toml
   docs/
-  configs/
-    models/
-    training/
-    runtime/
-    evaluation/
-    policy/
   src/
-    aegis/
-      api/
-      application/
-      artifacts/
-      backends/
-      context/
-      hardware/
-      memory/
-      policy/
-      retrieval/
-      runtime/
-      tools/
-      tracing/
-      verification/
-    sarn/
-      config/
-      data/
-      modules/
-      models/
-      training/
-      generation/
-      interpretability/
+    aegis_sarn/
+      config.py
+      cli.py
+      aegis/
+        schemas.py
+        trace.py
+        backends.py
+        controller.py
+      sarn/
+        layers.py
+        model.py
+        data.py
+        generation.py
+        training.py
+        checkpoint.py
+      eval/
+      utils/
   tests/
-    unit/
-    contracts/
-    integration/
-    security/
-    performance/
-  research/
-    experiments/
-    generators/
-    analyses/
-  scripts/
-  artifacts/          # ignored local cache; manifests may be tracked
-  reports/
-    decisions/
-    evaluations/
-    model-cards/
-    data-cards/
+  artifacts/          # ignored local generated checkpoints/manifests
 ```
 
-Directories are created only when their first real file is implemented; empty architecture theater is avoided.
+Future `configs/`, `research/`, and `reports/` trees are created only with their first real artifact; empty architecture theater remains prohibited.
 
 ## 2. Dependency Direction
 
 ```text
-clients -> aegis.api -> aegis.application
-application -> framework ports/interfaces
-adapters -> ports/interfaces
-aegis backend adapter -> sarn public inference interface
-sarn modules -> no aegis implementation imports
-research -> may import public aegis/sarn APIs
+clients -> aegis_sarn.cli -> aegis_sarn.aegis.SessionController
+controller -> GenerationBackend protocol
+SARNBackend -> aegis_sarn.sarn public model/generation interface
+aegis_sarn.sarn -> config/eval/utils only; no aegis runtime imports
+future research -> public aegis_sarn APIs
 ```
 
-`sarn` cannot import policy, tools, persistent stores, or application services. The model package must train independently. Aegis cannot import internal SARN layers except through an explicit research adapter.
+`aegis_sarn.sarn` cannot import policy, tools, persistent stores, or application services. The model package trains independently. Aegis uses the public SARN model/generation interface through `SARNBackend`; direct imports of individual internal layers are not runtime contracts.
 
 ## 3. Package Responsibilities
 
-### `src/aegis`
+### `src/aegis_sarn/aegis`
 
 Production-oriented orchestration and capability control. Core logic depends on protocols; adapters contain backend and infrastructure details. The application layer is testable with fake models, stores, and executors.
 
-### `src/sarn`
+### `src/aegis_sarn/sarn`
 
 Tensor code, architecture configuration, model serialization, training/generation primitives, and instrumentation. Experimental layers are configuration-gated and unit-tested against reference implementations.
 
@@ -112,26 +85,21 @@ Configuration inheritance is shallow and its resolved form is always logged. Env
 
 Local `artifacts/`, caches, datasets, checkpoints, secrets, generated indexes, and private traces are ignored by Git. Small manifests, checksums, schemas, and evaluation summaries are tracked. Artifact URIs must be replaceable so local filesystem and remote stores share the same logical registry interface.
 
-## 6. Initial Implementation Order
+## 6. Initial Implementation Status
 
-The first code commit should create only:
+The Phase 1 minimum slice now contains:
 
 ```text
 pyproject.toml
-src/sarn/config/
-src/sarn/modules/
-src/sarn/models/
-src/sarn/training/
-src/aegis/api/
-src/aegis/application/
-src/aegis/backends/
-tests/unit/
-tests/integration/
-configs/models/
-configs/training/
+src/aegis_sarn/config.py
+src/aegis_sarn/sarn/
+src/aegis_sarn/aegis/
+src/aegis_sarn/eval/
+src/aegis_sarn/utils/
+tests/
 ```
 
-It should deliver the Phase 1 vertical slice rather than scaffold every future subsystem.
+This is intentionally a vertical slice rather than scaffolding future subsystems. New directories require implemented behavior and tests.
 
 ## 7. Ownership and Review
 

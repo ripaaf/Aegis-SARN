@@ -46,4 +46,4 @@ This is the authoritative navigation page. Documents are split by responsibility
 - **Accepted**: passed its stated evidence gate.
 - **Rejected**: tested and not adopted; results remain documented.
 
-At Phase 0, architecture is normative as a project boundary, but nearly every model enhancement beyond the dense baseline is proposed rather than accepted.
+Phase 0 specification is complete and the minimum Phase 1 SARN-Dense/Aegis spine is implemented. Nearly every enhancement beyond the dense baseline remains proposed rather than accepted.

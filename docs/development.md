@@ -6,9 +6,20 @@ A change is complete when code, tests, configuration/schema updates, documentati
 
 ## 2. Environment
 
-Use a locked Python environment once implementation begins. The supported Python and accelerator matrix will be chosen in Phase 1 and recorded in `pyproject.toml` and CI. Optional backend dependencies live in extras so a CPU-only framework installation does not require every accelerator stack.
+Phase 1 supports Python 3.11+ and PyTorch 2.2+ with CPU as the required reference path. The package metadata and CI command live in `pyproject.toml`; accelerator availability is optional and does not affect acceptance. Optional future backend dependencies must live in extras so a CPU-only framework installation does not require every accelerator stack.
 
 Commands are exposed through a small documented task interface rather than developer-specific shell history.
+
+Reference commands:
+
+```bash
+python -m pip install -e '.[dev]'
+python -m pytest
+aegis-sarn train-smoke --output-dir artifacts/phase1 --device cpu
+aegis-sarn run --backend fake --prompt 'contract check'
+```
+
+On a Windows installation where an older/broken setuptools fails while overriding stdlib `distutils` before reading this project, set `SETUPTOOLS_USE_DISTUTILS=stdlib` for the installation command. This is a host-environment workaround, not a project dependency.
 
 ## 3. Code Standards
 
@@ -90,4 +101,6 @@ Never commit secrets, private data, raw user traces, licensed datasets, or unrev
 
 ## 11. First Coding Issue
 
-The recommended first implementation issue is the dense micro-model vertical slice: validated model/training config, RoPE causal attention, one decoder block, full model, tiny generated dataset, one-batch overfit, checkpoint round trip, greedy generation, and an Aegis fake/real backend contract. This creates a spine that future research can extend without pretending the entire roadmap exists.
+The minimum dense micro-model vertical slice is implemented: validated model/training/runtime/seed/artifact configuration, RoPE causal MHA, decoder blocks, generated datasets, one-batch overfit, checkpoint and optimizer resume, greedy generation, and Aegis fake/SARN backend contracts.
+
+Phase 1 hardening still includes KV-cache implementation/parity and optional sampled generation from the broader research roadmap. These are not silently claimed by the current minimum acceptance slice. SARN-Hybrid work must not begin until maintainers explicitly close or defer those hardening items through the roadmap.
