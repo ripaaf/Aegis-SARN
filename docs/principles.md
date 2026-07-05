@@ -8,7 +8,7 @@ Start with the smallest credible baseline. Add one mechanism, measure it against
 
 ## 2. Breakthrough Target, Evidence-Gated Path
 
-The project is allowed to pursue a new architecture, not only optimize existing ones. However, ambition does not bypass measurement: every new mechanism must beat matched baselines under declared budgets before becoming default. SARN-Hybrid is the target; its final design is determined by evidence.
+The project is allowed to pursue a new architecture, not merely optimize existing ones. However, ambition does not bypass measurement: a mechanism becomes part of the default path only when it beats matched baselines under declared resource, quality, robustness, and safety gates. SARN-Hybrid is the target; its final design is determined by evidence.
 
 ## 3. Separate Mechanism, Claim, and Metric
 

@@ -18,6 +18,7 @@ The long-term research target is **SARN-Hybrid**, a new hybrid model architectur
 - resettable fast or working memory for temporary associations;
 - gated read/write paths between token states, workspace, and working memory;
 - retrieval and bounded verification through the Aegis control plane;
+- interpretability instrumentation for testing representation and routing claims;
 - compression and hardware-adaptive execution across measured deployment profiles.
 
 This is one intended research spine, not a bag of fashionable modules. SARN-Dense is built first as the control architecture. Each SARN-Hybrid mechanism is introduced behind a feature flag, compared with matched alternatives, and either accepted, revised, or rejected. The thesis is ambitious by design; evidence determines its final form.

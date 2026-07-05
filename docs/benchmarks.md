@@ -12,9 +12,9 @@ SARN-Hybrid claims require simultaneous model-quality and system-cost evidence. 
 
 ### Capability-Efficiency Frontiers
 
-- **intelligence per active FLOP:** predeclared composite or task-specific quality divided by measured/estimated active forward compute, with the aggregation and FLOP method published;
-- **quality per watt:** task quality alongside average and peak power plus energy per completed request; wattage alone is not energy efficiency;
-- **quality per MB:** task quality against peak resident RAM/VRAM and separately against artifact storage;
+- **verified quality per active FLOP:** predeclared composite or task-specific check-passing quality divided by measured/estimated active forward compute, with the aggregation and FLOP method published;
+- **verified quality per watt:** check-passing task quality alongside average and peak power plus energy per completed request; wattage alone is not energy efficiency;
+- **verified quality per MB of RAM/VRAM:** check-passing task quality against peak resident memory and, separately, artifact storage;
 - **time-to-verified-correct-answer:** end-to-end latency through retrieval, generation, checking, repair, and final correct acceptance;
 - **active/total capacity frontier:** quality versus active parameters, total resident parameters, and model bytes so sparse systems cannot hide storage cost.
 
@@ -26,8 +26,8 @@ Ratios supplement rather than replace Pareto plots. A model can game a ratio by 
 - **structural generalization:** performance on held-out compositions, values, templates, graph sizes, and state transitions;
 - **graph reasoning length extrapolation:** accuracy and calibration beyond trained path/rule-chain lengths, with dense equal-compute controls;
 - **working-memory conflict handling:** retention, overwrite, contradiction, interference, expiry, and complete-reset curves;
-- **sparse expert collapse:** utilization, routing entropy, overflow/drop rate, specialization, and worst-expert load through training;
-- **hardware degradation curve:** quality, latency, energy, context, and enabled-capability changes from Max/Pro through Nano rather than one best-device point;
+- **sparse expert collapse and routing stability:** utilization, routing entropy, overflow/drop rate, specialization, assignment stability, and worst-expert load through training;
+- **hardware degradation curve:** quality, latency, energy, context, and enabled-capability changes across Nano, Lite, Balanced, Pro, and Max rather than one best-device point;
 - **integration efficiency:** SARN-Hybrid versus SARN-Dense at matched parameters, active FLOPs, measured latency, and memory, followed by stage-by-stage ablation.
 
 No architecture-breakthrough claim is supported by quality-only or systems-only improvement. The result must state which frontier moved, by how much, on which workload and hardware, and with which regressions.

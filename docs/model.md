@@ -16,7 +16,8 @@ SARN-Hybrid is not predeclared successful or frozen in every detail. The target 
 token IDs
  -> token embedding
  -> hybrid sequence engine
-      GQA attention blocks with RoPE on queries/keys
+      MHA/GQA attention with RoPE on queries/keys
+      optional local/sliding attention
       optional selective SSM/Mamba-style blocks
  -> conditional-capacity stage
       dense FFN control or sparse expert FFN
@@ -24,7 +25,8 @@ token IDs
  -> sparse graph message-passing cycles
  -> resettable fast/working-memory read and update
  -> gated writeback to token states
- -> final normalization + decoder head
+ -> final normalization
+ -> tied language-model head
  -> next-token logits
 ```
 
@@ -42,7 +44,7 @@ SARN-Hybrid tests whether useful capability can scale across several controlled 
 - **working-memory state** for temporary bindings without modifying base weights;
 - **adaptive runtime budgets** for changing active computation across hardware tiers.
 
-The intended novelty is the integrated computation path and its learned interfaces, not the claim that any one ingredient was invented here.
+The intended novelty is the integrated computation path and its learned interfaces, not the claim that any one ingredient was invented here. SARN-Hybrid is not an acronym checklist: it is one end-to-end architecture hypothesis whose components must work together under a shared training and evaluation contract.
 
 ### 2.3 Module Contracts
 

@@ -85,12 +85,13 @@ request
        dense causal Transformer blocks
        decoder head
   -> candidate output
-  -> Aegis response policy and trace
+  -> Aegis policy and configured checks
+  -> final output + trace
 ```
 
 SARN-Dense establishes correctness, training behavior, model/runtime contracts, and matched baselines. It is not the final architectural identity.
 
-### 3.2 Long-Term Hybrid Path
+### 3.2 Long-Term SARN-Hybrid Path
 
 ```text
 Aegis Runtime
