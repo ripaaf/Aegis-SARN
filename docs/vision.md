@@ -6,7 +6,7 @@ Build an open, inspectable AI research stack that extracts as much **verified us
 
 The project develops both the surrounding cognitive runtime and the models it runs. The runtime should also host compatible third-party models, so framework progress is not blocked on successfully inventing a new neural architecture.
 
-## Grand Architecture Thesis
+## Grand Research Vision
 
 The long-term research target is **SARN-Hybrid**, a new hybrid model architecture designed to scale useful cognition across more than dense parameter count alone. Its planned spine combines:
 
@@ -22,6 +22,8 @@ The long-term research target is **SARN-Hybrid**, a new hybrid model architectur
 - compression and hardware-adaptive execution across measured deployment profiles.
 
 This is one intended research spine, not a bag of fashionable modules. SARN-Dense is built first as the control architecture. Each SARN-Hybrid mechanism is introduced behind a feature flag, compared with matched alternatives, and either accepted, revised, or rejected. The thesis is ambitious by design; evidence determines its final form.
+
+At system scale, this work converges on **Aegis-X**: SARN-Hybrid combined with governed retrieval and tool use, persistent and temporary memory, verification and simulation, interpretability instrumentation, safety evaluations for reward hacking and deceptive behavior, multimodal adapters, and profile-aware execution. Aegis-X is the long-term system research hypothesis, not a product that currently exists.
 
 ## The Two Deliverables
 
@@ -110,6 +112,12 @@ This project does not promise:
 - that combining many fashionable techniques will make them additive;
 - one checkpoint that is simultaneously optimal for text, vision, audio, robotics, and every device.
 
+## Near-Perfect as Direction, Not Claim
+
+The project treats near-perfect behavior only as an asymptotic research direction: reduce errors and hallucinations, increase robustness under distribution shift, improve efficiency and interpretability, strengthen memory and verification, and reduce unsafe behavior over time.
+
+It does not claim perfection, AGI, zero-loss deployment, universal correctness, or equal capability across hardware. Progress is reported as measured movement on declared quality, resource, robustness, interpretability, and safety metrics—including failure cases and regressions.
+
 ## Long-Term Direction
 
-The primary long-term direction is construction and evaluation of SARN-Hybrid. If its language and framework foundations pass their gates, Aegis can then add modality adapters: a vision encoder or VLM, segmentation through a dedicated model, speech encoders and decoders, and constrained action models. These are components in a governed system, not acronym checkboxes forced into a single network.
+The primary long-term direction is construction and evaluation of SARN-Hybrid, followed by integration into Aegis-X. If its language and framework foundations pass their gates, Aegis-X can add modality adapters: a vision encoder or VLM, segmentation through a dedicated model, speech encoders and decoders, and constrained action models. These are components in a governed system, not acronym checkboxes forced into a single network.

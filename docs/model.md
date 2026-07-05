@@ -8,13 +8,13 @@ The canonical first model is a small GPT-style model: a decoder-only Transformer
 
 SARN-Hybrid is not predeclared successful or frozen in every detail. The target supplies direction; matched experiments determine which proposed mechanisms survive. A rejected mechanism changes the final hybrid design without changing the research thesis.
 
-## 2. SARN-Hybrid Target Architecture
+## 2. SARN-Hybrid Target Algorithm
 
 ### 2.1 Canonical Forward Path
 
 ```text
-token IDs
- -> token embedding
+token IDs and/or authorized modality features
+ -> token and/or modality embeddings
  -> hybrid sequence engine
       MHA/GQA attention with RoPE on queries/keys
       optional local/sliding attention
@@ -22,17 +22,33 @@ token IDs
  -> conditional-capacity stage
       dense FFN control or sparse expert FFN
  -> latent workspace slots
+ -> optional sparse-autoencoder feature extraction/observation
  -> sparse graph message-passing cycles
  -> resettable fast/working-memory read and update
  -> gated writeback to token states
+ -> verifier and instrumentation hooks
  -> final normalization
  -> tied language-model head
  -> next-token logits
 ```
 
-At the system boundary, Aegis can attach retrieval evidence before a model call and verifier hooks after candidate generation. Retrieval, persistent memory, tool execution, policy, and the decision to repair remain framework operations; they are not silently folded into model weights.
+At the system boundary, Aegis can attach retrieval evidence before a model call and consume verifier hooks after candidate generation. Retrieval, persistent memory, tool execution, policy, and the decision to repair remain framework operations; they are not silently folded into model weights.
 
-### 2.2 Architectural Thesis
+### 2.2 Component Responsibilities
+
+- **RoPE and GQA:** RoPE supplies relative-position-sensitive query/key transformations; GQA reduces KV-cache heads and memory traffic compared with full multi-head key/value projections. Neither guarantees unlimited context.
+- **Local attention:** optionally limits attention span or supplies structured locality when it improves the target workload.
+- **Selective SSM blocks:** provide an optional long-context/state-propagation path whose real kernel speed and quality must be measured against attention.
+- **Dense or sparse-expert FFN:** retains a dense control while testing whether conditional routing can activate useful capacity without proportional active compute. Total storage and communication remain part of the cost.
+- **Latent workspace:** provides persistent learned slots for bounded internal state. Slots are not called human concepts until causal evidence supports that interpretation.
+- **Sparse feature extraction:** SAEs initially observe frozen activations for interpretability. An online feature bridge is optional, read-only by default, and requires a separate causal acceptance test before influencing computation.
+- **Graph message passing:** updates relations among workspace slots for a bounded number of cycles. It is an explicit relational computation mechanism, not proof of logical reasoning.
+- **Resettable working memory:** stores temporary associations during a run or session without mutating released base weights; capacity, conflict, reset, isolation, and poisoning are tested.
+- **Gated writeback:** controls how workspace and memory state re-enters token representations, limiting unstable or irrelevant latent state from dominating generation.
+- **Verifier hooks:** expose candidates and typed instrumentation to Aegis checkers. The model may provide signals or self-critique, but it cannot declare itself correct or authorize an effect.
+- **Final normalization and tied head:** convert the final token representation into vocabulary logits using a reproducible baseline-compatible output path.
+
+### 2.3 Architectural Thesis
 
 SARN-Hybrid tests whether useful capability can scale across several controlled dimensions:
 
@@ -46,7 +62,7 @@ SARN-Hybrid tests whether useful capability can scale across several controlled 
 
 The intended novelty is the integrated computation path and its learned interfaces, not the claim that any one ingredient was invented here. SARN-Hybrid is not an acronym checklist: it is one end-to-end architecture hypothesis whose components must work together under a shared training and evaluation contract.
 
-### 2.3 Module Contracts
+### 2.4 Module Contracts
 
 Every hybrid stage preserves a typed tensor contract and can be replaced by a control:
 
@@ -55,17 +71,19 @@ Every hybrid stage preserves a typed tensor contract and can be replaced by a co
 | sequence engine | contextual token states to contextual token states | attention-only SARN-Dense block |
 | conditional capacity | token states to transformed token states | dense FFN at matched active cost |
 | workspace router | token states to initial/update signals for `K` slots | pooled dense state or no workspace |
+| sparse feature observer | selected activations to sparse diagnostic features | observer disabled and reconstruction-only control |
 | graph cycles | workspace state to updated workspace state | independent slots, shuffled/frozen edges |
 | working memory | bounded read/update of run-scoped state | no memory and explicit key/value memory |
 | gated writeback | workspace/memory state to token-state residual | no writeback and equal-parameter MLP |
+| verifier hooks | candidate/telemetry to typed Aegis interface | candidate-only interface with no learned signals |
 
 The model configuration declares block order, shared versus unshared cycle weights, slot count, graph sparsity, memory capacity, cycle count, expert routing, and all gates. The resolved configuration and feature flags are part of the artifact identity.
 
-### 2.4 Core Versus Optional Mechanisms
+### 2.5 Core Versus Optional Mechanisms
 
-The target's core research spine is efficient RoPE/GQA attention, latent workspace slots, graph message passing, resettable working memory, and gated token-state writeback. Selective SSM blocks and MoE routing are optional accelerators: they enter the integrated architecture only when they improve the relevant quality-cost frontier. A dense FFN and attention-only path always remain available as controls.
+The target's core research spine is efficient RoPE/GQA attention, latent workspace slots, graph message passing, resettable working memory, and gated token-state writeback. Selective SSM blocks, local/linear attention variants, and MoE routing are optional accelerators: they enter the integrated architecture only when they improve the relevant quality-cost frontier. A dense FFN and full-attention path always remain available as controls.
 
-### 2.5 Integration Rule
+### 2.6 Integration Rule
 
 Individual wins are not enough to declare SARN-Hybrid successful. The integrated path must be trained end to end, compared with a dense model at matched parameters and active compute, and ablated stage by stage. Interactions are reported explicitly; two helpful modules can interfere when combined.
 
@@ -206,7 +224,7 @@ This simple rule can saturate, overwrite, leak information, or destabilize scale
 
 ## 9. Sparse Autoencoder Track
 
-SAEs are initially offline interpretability artifacts trained on frozen activations. They are not in the language-model forward path and are not assumed to solve polysemanticity. If later used as a feature interface to the workspace, that becomes a separate causal experiment measuring reconstruction loss, sparsity, dead features, downstream quality, feature stability, and intervention effects.
+SAEs are initially offline interpretability artifacts trained on frozen activations and are not assumed to solve polysemanticity. The target diagram permits an optional instrumentation path that extracts features without writing back into model state; it is disabled in the default computational path. If SAE features later influence workspace or token computation, that becomes a separate causal experiment measuring reconstruction loss, sparsity, dead features, downstream quality, feature stability, and intervention effects.
 
 Superposition is treated as a representation phenomenon, not a switch to enable. Compact models may use superposed features; SAEs may offer one approximate decomposition.
 
@@ -267,4 +285,4 @@ The human-readable name never replaces the full configuration digest.
 
 ## 16. Acceptance Rule
 
-No experimental component becomes the default because it is novel. Acceptance requires a pre-registered hypothesis, at least one matched baseline, multi-seed results, systems measurements, ablations, robustness tests, documented failure cases, and a decision-log entry. A negative result can complete the research milestone without entering the production model.
+SARN-Hybrid is not a random collection of buzzwords. It is one integrated algorithm hypothesis with separately configurable and ablatable mechanisms. No component becomes the default because it is novel. Acceptance requires a pre-registered hypothesis, at least one matched baseline, multi-seed results, systems measurements, ablations, robustness and safety tests, documented failure cases, and a decision-log entry. A negative result can complete the research milestone without entering the production model.

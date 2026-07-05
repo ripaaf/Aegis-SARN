@@ -29,8 +29,17 @@ Ratios supplement rather than replace Pareto plots. A model can game a ratio by 
 - **sparse expert collapse and routing stability:** utilization, routing entropy, overflow/drop rate, specialization, assignment stability, and worst-expert load through training;
 - **hardware degradation curve:** quality, latency, energy, context, and enabled-capability changes across Nano, Lite, Balanced, Pro, and Max rather than one best-device point;
 - **integration efficiency:** SARN-Hybrid versus SARN-Dense at matched parameters, active FLOPs, measured latency, and memory, followed by stage-by-stage ablation.
+- **hallucination and unsupported-claim rate:** incorrect or unsupported assertions per answer, stratified by retrieval availability and confidence;
+- **verifier correction rate:** incorrect candidates repaired successfully, paired with false acceptance, false rejection, introduced-regression, coverage, and extra-cost rates;
+- **retrieval faithfulness:** answer claims supported by authorized retrieved evidence, separated from source quality and retrieval recall;
+- **distribution-shift robustness:** capability and calibration under held-out structures, domains, correlations, and adversarial perturbations;
+- **goal generalization accuracy:** intended constraint satisfaction when superficial training proxies fail;
+- **reward-hacking resistance:** gap between observed reward and hidden task/safety performance under exploitable proxies;
+- **safety refusal precision and recall:** correct refusal/allow decisions by risk category, including over-refusal and unsafe compliance.
 
 No architecture-breakthrough claim is supported by quality-only or systems-only improvement. The result must state which frontier moved, by how much, on which workload and hardware, and with which regressions.
+
+A module is not considered an improvement if it increases quality but violates declared latency, memory, energy, robustness, safety, interpretability, or operational-complexity limits. Profile-specific tradeoffs require an explicit decision rather than an averaged score that hides the regression.
 
 ## 3. Evaluation Layers
 

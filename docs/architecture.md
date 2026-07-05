@@ -120,9 +120,66 @@ SARN-Hybrid may emit logits, structured call proposals, latent-state summaries, 
 
 Aegis selects artifacts and budgets, constructs context, authorizes capabilities, stores persistent memory, runs retrieval and tools, invokes verifiers, limits repair, and records the trace. These invariants remain true even if future training makes SARN-Hybrid more capable.
 
-## 4. End-to-End Flows
+## 4. Aegis-X System Architecture
 
-### 4.1 Text Generation
+**Aegis-X = SARN-Hybrid + Aegis Runtime + governed adapters.** It is the long-term complete-system hypothesis, not a currently implemented product.
+
+### 4.1 System Flow
+
+```text
+User / text / image / audio / file / sensor / tool result
+  -> Aegis input router and typed content envelope
+  -> authorized modality encoder / parser
+  -> SARN-Hybrid candidate reasoning and output
+       efficient sequence backbone
+       optional sparse experts
+       latent graph workspace
+       resettable neural working memory
+       candidate and verifier hooks
+  -> Aegis retrieval / tool / verifier / simulator transitions
+  -> policy, permission, provenance, and safety gates
+  -> checked answer / authorized action / qualified output / refusal
+```
+
+The runtime can iterate through retrieval, tool results, candidate generation, and checks within hard budgets. Model-generated text never becomes permission.
+
+### 4.2 Responsibility Split
+
+| Aegis Runtime owns | SARN-Hybrid owns |
+|---|---|
+| tools and external side effects | learned tensor computation |
+| retrieval and persistent memory | sequence modeling |
+| policy, permissions, and approvals | optional expert routing |
+| verification, simulation, and repair limits | latent workspace and graph updates |
+| tracing, artifact integrity, and deployment | bounded neural working memory |
+| hardware profiles and resource budgets | decoder logits and structured proposals |
+| safety gates and incident controls | instrumentation and verifier hooks |
+
+### 4.3 Profile-Aware Cognitive Scaling
+
+```text
+Constrained profile: Nano / Lite
+  SLM or SARN-Nano artifact
+  -> no or fewer accepted experts
+  -> fewer graph/workspace cycles
+  -> shorter context and strict output budget
+  -> stronger reliance on authorized retrieval when available
+  -> inexpensive checks; all permission/safety gates retained
+
+Capable profile: Balanced / Pro / Max
+  SARN-Base, Pro, or distributed artifact
+  -> more accepted conditional capacity
+  -> more bounded graph/workspace cycles
+  -> longer context and richer working memory
+  -> multimodal adapters where evaluated
+  -> deeper retrieval, tools, verification, and simulation
+```
+
+Profiles change optional capability and cost, not the rule that Aegis governs effects. Expensive learned verifiers may vary by profile; deterministic authorization and high-risk approval requirements never disappear.
+
+## 5. End-to-End Flows
+
+### 5.1 Text Generation
 
 1. Validate the request and reserve budgets.
 2. Assemble trusted system policy, conversation, and user content.
@@ -130,7 +187,7 @@ Aegis selects artifacts and budgets, constructs context, authorizes capabilities
 4. Decode within token, time, and memory budgets.
 5. Apply output policy and return the response plus disclosed limitations.
 
-### 4.2 Retrieval-Augmented Answer
+### 5.2 Retrieval-Augmented Answer
 
 1. Classify whether retrieval is permitted and useful.
 2. Query allowed collections and retrieve candidate chunks.
@@ -140,7 +197,7 @@ Aegis selects artifacts and budgets, constructs context, authorizes capabilities
 6. Check that citations refer to supplied passages and quoted claims have support.
 7. Return the answer with provenance. Citation linkage is not proof of truth.
 
-### 4.3 Tool Use
+### 5.3 Tool Use
 
 1. The model proposes a schema-valid tool call.
 2. Aegis validates capability, arguments, side-effect class, and budget.
@@ -148,7 +205,7 @@ Aegis selects artifacts and budgets, constructs context, authorizes capabilities
 4. The executor runs in isolation and captures result, error, and side effects.
 5. The model may interpret the typed result; it cannot alter the audit record.
 
-### 4.4 Candidate–Verify–Repair
+### 5.4 Candidate–Verify–Repair
 
 1. Generate one or more candidates.
 2. Run deterministic and task-specific checks.
@@ -158,7 +215,7 @@ Aegis selects artifacts and budgets, constructs context, authorizes capabilities
 
 Verifier loops always have a hard cap.
 
-## 5. Trust Zones
+## 6. Trust Zones
 
 | Zone | Examples | Default trust | May cause side effects? |
 |---|---|---:|---:|
@@ -170,11 +227,11 @@ Verifier loops always have a hard cap.
 | Verifier | tests, compilers, critics | varies by verifier | no direct side effects |
 | Tool adapter | filesystem, shell, network, robot | privileged boundary | yes, with authorization |
 
-## 6. Failure Semantics
+## 7. Failure Semantics
 
 Every run ends in one explicit state: `completed`, `partial`, `refused`, `budget_exhausted`, `cancelled`, `validation_error`, `model_error`, `tool_error`, or `internal_error`. Partial output must not be mislabeled as verified output. Retries are bounded and idempotency keys are required for side-effecting tools.
 
-## 7. Cross-Cutting Invariants
+## 8. Cross-Cutting Invariants
 
 - Base model weights are immutable during serving.
 - Persistent memory and tool side effects are opt-in and audited.
@@ -184,6 +241,6 @@ Every run ends in one explicit state: `completed`, `partial`, `refused`, `budget
 - Framework APIs are versioned independently from model checkpoints.
 - Safety-critical decisions cannot rely only on learned self-critique.
 
-## 8. Evolution Strategy
+## 9. Evolution Strategy
 
 Text-only local inference comes first. Retrieval and deterministic verification follow stable contracts. Novel SARN modules are evaluated in the research package before runtime integration. Multimodal encoders and action models are later adapters; they do not destabilize the core request, policy, trace, and artifact contracts.

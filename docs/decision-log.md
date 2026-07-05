@@ -19,6 +19,25 @@ This file indexes accepted project-level decisions. Once implementation begins, 
 - isolated module wins do not establish success until the combined hybrid path passes its integration gate;
 - a rejected optional accelerator changes the final configuration without ending the SARN-Hybrid program.
 
+## ADR-0002 — Aegis-X Is the Long-Term System Target
+
+**Status:** accepted, 2026-07-05.
+
+**Decision:** the project will pursue **Aegis-X** as its long-term complete-system hypothesis: a governed Aegis runtime plus the SARN-Hybrid model family, designed to scale useful intelligence through efficient sequence modeling, optional sparse experts, latent graph computation, resettable working memory, retrieval, verification and simulation, interpretability instrumentation, safety controls, and hardware-adaptive deployment.
+
+**Reason:** SARN-Hybrid names learned tensor computation, while the intended research outcome also depends on external knowledge, permissioned effects, persistent memory, verification, safety, and deployment. Naming the complete system prevents framework functions from being mislabeled as neural layers and makes the final integration target explicit.
+
+**Consequences:**
+
+- SARN-Dense remains the control baseline;
+- SARN-Hybrid remains the target algorithmic hypothesis;
+- Aegis-X is the complete system hypothesis and Phase 17 integration target;
+- every new component remains behind a feature flag or explicit capability gate until accepted;
+- no component becomes default without matched evidence and failure analysis;
+- Aegis-X may use different evaluated artifacts and active mechanisms by hardware profile;
+- ambition is allowed, but proof is required;
+- the name does not claim a current implementation, product maturity, AGI, perfection, or guaranteed improvement.
+
 ## D-001 — Documentation-First Foundation
 
 **Status:** accepted, 2026-07-05.
@@ -43,11 +62,11 @@ This file indexes accepted project-level decisions. Once implementation begins, 
 
 **Status:** accepted pending public name review, 2026-07-05.
 
-**Decision:** use repository spelling **Aegis-SARN**, expanded as **Sparse Adaptive Reasoning Network**. Treat Aegis-SERN and Aegis-X as historical working names.
+**Decision:** use repository spelling **Aegis-SARN**, expanded as **Sparse Adaptive Reasoning Network**. Use **Aegis-X** only for the long-term complete system defined by ADR-0002. Treat Aegis-SERN as a historical misspelling.
 
 **Reason:** the current repository already uses SARN and the expansion matches the core hypothesis.
 
-**Consequence:** public branding still requires conflict/trademark review.
+**Consequence:** Aegis-X does not rename the repository or imply implementation status. Public branding still requires conflict/trademark review.
 
 ## D-004 — Dense Decoder-Only Transformer Is the Baseline
 

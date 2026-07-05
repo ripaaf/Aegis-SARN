@@ -2,11 +2,40 @@
 
 ## 1. Roadmap Rules
 
-This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–3 build the SARN-Dense control and evaluation laboratory. Phases 4–8 are the SARN-Hybrid construction path. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
+This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–2 build the SARN-Dense control and evaluation laboratory. Phases 3–8 construct and test the SARN-Hybrid model mechanisms; Phases 9–15 add governed system capabilities; Phases 16–17 are integration gates. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
 
 No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
 
-## Phase 0 — Authoritative Specification
+## Canonical Aegis-X Roadmap
+
+This is the authoritative high-level sequence. Detailed workstreams below preserve implementation and evidence requirements without creating a competing phase numbering system.
+
+| Phase | Target | Evidence-gated outcome |
+|---:|---|---|
+| 0 | Documentation and research specification | architecture, risks, interfaces, ADRs, and first issue are implementation-ready |
+| 1 | SARN-Dense baseline | causal Transformer trains, saves, loads, generates, and supplies a reproducible control |
+| 2 | Evaluation harness and benchmarks | structural, systems, safety, and statistical evaluation pipelines establish baseline variance |
+| 3 | Efficient attention foundation | RoPE/GQA path passes correctness and quality-cost comparisons |
+| 4 | Latent workspace prototype | bounded slots and token/workspace routing run behind feature flags |
+| 5 | Graph message-passing reasoning | graph cycles pass null-edge, equal-compute, and length-extrapolation tests |
+| 6 | Resettable working memory | temporary memory passes capacity, conflict, reset, isolation, and poisoning tests |
+| 7 | Sparse expert routing | optional experts pass routing stability, total-memory, and active-cost gates or remain disabled |
+| 8 | Hybrid sequence engine | optional local/linear attention and SSM blocks pass workload-specific controls or remain disabled |
+| 9 | Retrieval and external memory | governed evidence and memory pass provenance, faithfulness, injection, access, and deletion tests |
+| 10 | Verifier, critic, and simulator loop | bounded checking improves accepted correctness after false-pass, coverage, and cost accounting |
+| 11 | Interpretability with sparse autoencoders | offline feature dictionaries and causal interventions clarify selected model mechanisms |
+| 12 | Advanced architecture safety tests | reward hacking, goal shift, oversight shift, tool, memory, and persistence evaluations run |
+| 13 | Hardware-adaptive runtime | Nano through Max profiles fit, disclose degradation, and preserve safety invariants |
+| 14 | Compression and efficient deployment | quantization, distillation, pruning, speculative decoding, and lottery-ticket studies move a Pareto frontier |
+| 15 | Multimodal and action adapters | selected VLM, segmentation, audio, sensor, or action adapter passes its own safety case |
+| 16 | SARN-Hybrid Alpha | accepted model mechanisms integrate end to end and survive interaction ablations |
+| 17 | Aegis-X experimental system | SARN-Hybrid, Aegis runtime, memory, retrieval, verification, safety, and supported adapters integrate under one traceable contract |
+
+Post-training and preference alignment are cross-cutting activities introduced only after the relevant base capability, evaluation, and safety harnesses exist.
+
+## Detailed Evidence Workstreams
+
+### Workstream A — Authoritative Specification
 
 **Goal:** establish scope, vocabulary, boundaries, evidence rules, and the first executable slice.
 
@@ -14,7 +43,7 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 
 **Exit gate:** links and terminology are consistent; every proposed component is marked as baseline, framework, experiment, risk, or future extension; the first coding issue can be implemented without inventing a new architecture.
 
-## Phase 1 — Dense Micro-Model and Framework Spine
+### Workstream B — Dense Micro-Model and Framework Spine
 
 **Goal:** prove end-to-end correctness on one machine.
 
@@ -24,7 +53,7 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 
 **Exit gate:** automated causal-mask, checkpoint-resume, KV-cache parity, config, state-machine, and end-to-end tests pass; a clean clone can reproduce the smoke run from documentation.
 
-## Phase 2 — Reproducible Tiny Baseline
+### Workstream C — Reproducible Tiny Baseline
 
 **Goal:** create the scientific control for all architecture research.
 
@@ -32,7 +61,7 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 
 **Exit gate:** baseline runs are reproducible within declared tolerances; held-out evaluation is separated; all artifacts and lineage resolve; no unresolved correctness defect invalidates metrics.
 
-## Phase 3 — Evaluation and Experiment Platform
+### Workstream D — Evaluation and Experiment Platform
 
 **Goal:** make novel claims cheap to test and hard to fool ourselves about.
 
@@ -40,11 +69,11 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 
 **Exit gate:** an intentionally null architecture change produces no false “win”; repeated baseline runs quantify normal variance; raw-to-report lineage is auditable.
 
-## SARN-Hybrid Construction Path — Phases 4–8
+## SARN-Hybrid Evidence Workstreams
 
 These phases construct one compatible hybrid model spine. Each phase first proves its mechanism in isolation, then preserves the tensor/configuration contracts needed for later integration. “Construction” states architectural direction; it does not waive an acceptance gate.
 
-## Phase 4 — Efficient Attention Foundation
+### Workstream E — Efficient Attention Foundation
 
 **Goal:** establish the RoPE/GQA attention foundation shared by SARN-Hybrid while reducing decode memory/cost without unmeasured quality loss.
 
@@ -52,7 +81,7 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 **Exit gate:** at least one profile shows a practically meaningful measured benefit at or above its quality floor, or all tested variants are documented as rejected. Accepted settings remain configurable rather than deleting the reference path.
 
-## Phase 5 — Latent Workspace and Graph Core
+### Workstream F — Latent Workspace and Graph Core
 
 **Goal:** construct and test the SARN-Hybrid latent workspace, graph message-passing cycles, and gated token-state writeback.
 
@@ -60,7 +89,7 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 **Exit gate:** a variant passes the [benchmark acceptance gates](benchmarks.md), including held-out structural shifts and multi-seed evidence, or the hypothesis is narrowed/rejected. No human-concept claim is accepted without causal interpretability evidence.
 
-## Phase 6 — Resettable Working Memory Core
+### Workstream G — Resettable Working Memory Core
 
 **Goal:** add bounded temporary association/state to the hybrid path without online mutation of base weights.
 
@@ -68,7 +97,7 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 **Exit gate:** improvement over both token-context and simple external-memory controls at matched budget, with complete reset and no cross-session leakage. Otherwise prefer the simpler framework memory.
 
-## Phase 7 — Hybrid Sequence Engine
+### Workstream H — Hybrid Sequence Engine
 
 **Goal:** evaluate and, if justified, integrate selective SSM blocks beside the accepted attention foundation on relevant long-sequence workloads.
 
@@ -76,7 +105,7 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 **Exit gate:** a target profile/workload has better quality-cost tradeoff with stable training. “Linear complexity” alone is not an exit criterion.
 
-## Phase 8 — Sparse Expert Capacity
+### Workstream I — Sparse Expert Capacity
 
 **Goal:** test conditional expert capacity as the optional sparse-capacity stage of SARN-Hybrid at a scale and hardware topology where it can matter.
 
@@ -84,13 +113,13 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 **Exit gate:** specialization or quality improves at matched active cost without unacceptable collapse, communication, memory, or edge regressions. MoE may remain server-only or be rejected.
 
-### SARN-Hybrid Core Integration Gate
+### Integrated SARN-Hybrid Gate
 
-After Phase 8, train the strongest evidence-supported combination end to end. Compare it with SARN-Dense and equal-compute controls; ablate attention configuration, workspace, graph cycles, working memory, optional SSM blocks, and optional experts. The integrated result must report interaction effects, stability, active/total cost, and hardware-specific behavior. Passing isolated phases does not guarantee this integration gate passes.
+After Workstreams E–I produce viable candidates, train the strongest evidence-supported combination end to end. Compare it with SARN-Dense and equal-compute controls; ablate attention configuration, workspace, graph cycles, working memory, optional SSM blocks, and optional experts. The integrated result must report interaction effects, stability, active/total cost, and hardware-specific behavior. Passing isolated module gates does not guarantee the Phase 16 integration gate passes.
 
-## External Knowledge and Assurance Path — Phases 9–10
+## Aegis Knowledge and Assurance Workstreams
 
-## Phase 9 — Retrieval, Memory Service, and Provenance
+### Workstream J — Retrieval, Memory Service, and Provenance
 
 **Goal:** give small models governed access to external knowledge.
 
@@ -98,7 +127,7 @@ After Phase 8, train the strongest evidence-supported combination end to end. Co
 
 **Exit gate:** retrieval and end-to-end metrics pass independently; unauthorized content is isolated; citations resolve; deletion propagates under the documented SLA; the no-retrieval fallback is explicit.
 
-## Phase 10 — Verification, Repair, and Read-Only Tools
+### Workstream K — Verification, Repair, and Read-Only Tools
 
 **Goal:** improve time-to-correct-answer while containing effects.
 
@@ -106,7 +135,7 @@ After Phase 8, train the strongest evidence-supported combination end to end. Co
 
 **Exit gate:** check-passing accuracy improves after counting false accepts, false rejects, repair regressions, latency, and coverage; unauthorized calls fail closed; loop budgets cannot be bypassed.
 
-## Phase 11 — Instruction and Preference Post-Training
+## Training and Alignment Workstream
 
 **Goal:** make accepted checkpoints useful through instructions while preserving measured capability and boundaries.
 
@@ -114,11 +143,11 @@ After Phase 8, train the strongest evidence-supported combination end to end. Co
 
 **Exit gate:** practical instruction-following gain with acceptable base-capability, truthfulness, calibration, and safety deltas. Preference tuning is not represented as proof of alignment.
 
-## Deployment and Compression Path — Phases 12–13
+## Deployment and Compression Workstreams
 
 These phases turn accepted SARN-Dense and SARN-Hybrid configurations into measured hardware profiles. They optimize deployment without changing the model/runtime safety boundary.
 
-## Phase 12 — Hardware-Adaptive Runtime
+### Workstream L — Hardware-Adaptive Runtime
 
 **Goal:** choose evaluated configurations for real devices.
 
@@ -126,7 +155,7 @@ These phases turn accepted SARN-Dense and SARN-Hybrid configurations into measur
 
 **Exit gate:** each claimed profile passes load, memory pressure, generation, cancellation, quality-floor, and security tests on representative hardware; unsafe fits and missing controls fail closed.
 
-## Phase 13 — Distillation, Pruning, and Fast Decoding
+### Workstream M — Distillation, Pruning, and Fast Decoding
 
 **Goal:** improve deployment Pareto frontiers.
 
@@ -134,7 +163,9 @@ These phases turn accepted SARN-Dense and SARN-Hybrid configurations into measur
 
 **Exit gate:** each artifact improves at least one declared frontier (quality, latency, memory, energy, storage) without crossing required floors, and carries its own evaluation card.
 
-## Phase 14 — Interpretability Program
+## Interpretability and Expansion Workstreams
+
+### Workstream N — Interpretability Program
 
 **Goal:** causally investigate representations and failures in accepted models.
 
@@ -142,7 +173,7 @@ These phases turn accepted SARN-Dense and SARN-Hybrid configurations into measur
 
 **Exit gate:** claims have correlation and intervention evidence with stated limits. No interpretability output is promoted directly to a safety authority.
 
-## Phase 15 — Multimodal and Constrained Action Extensions
+### Workstream O — Multimodal and Constrained Action Extensions
 
 **Goal:** add one modality or action domain at a time without weakening the core boundary.
 
@@ -152,13 +183,16 @@ These phases turn accepted SARN-Dense and SARN-Hybrid configurations into measur
 
 ## Release Milestones
 
-- **0.1 Research Spine:** Phase 1 complete.
-- **0.2 Baseline Lab:** Phases 2–3 complete.
-- **0.3 SARN-Hybrid Core:** at least one hybrid module passes its evidence gate and integrates behind a feature flag.
-- **0.4 Local Knowledge Runtime:** Phase 9 complete.
-- **0.5 Checked Assistant:** Phase 10 and selected Phase 11 work complete.
-- **0.6 SARN-Hybrid Alpha:** efficient attention, workspace/graph, and resettable working-memory paths are integrated behind feature flags and have passed the combined ablation gate.
-- **1.0 Supported Local Platform:** stable APIs, measured hardware profiles, release/security process, and at least one maintained model path. No claim of AGI or universal capability is attached to 1.0.
+- **0.1 Docs and ADR complete:** Phase 0 exits with coherent specifications and an executable first issue.
+- **0.2 Dense baseline running:** SARN-Dense supplies a reproducible control checkpoint and training report.
+- **0.3 Benchmark harness complete:** capability, systems, safety, and statistical controls are operational.
+- **0.4 First SARN-Hybrid module:** one mechanism passes its isolated gate behind a feature flag.
+- **0.5 Latent workspace + graph prototype:** integrated workspace and message passing pass initial null/equal-compute controls.
+- **0.6 Working-memory prototype:** bounded memory passes initial reset, conflict, and isolation gates.
+- **0.7 Hardware-adaptive runtime:** multiple measured profiles select artifacts and budgets with disclosed degradation.
+- **1.0 Aegis-X Alpha:** the accepted SARN-Hybrid path and governed Aegis services operate as one experimental, traceable system.
+
+`1.0 Aegis-X Alpha` is a research-integration milestone, not a claim of production maturity, perfection, or universal capability.
 
 ## Immediate Backlog
 

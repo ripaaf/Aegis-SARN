@@ -53,3 +53,19 @@ An SAE feature or probe correlation is a hypothesis about a representation. It r
 ## 13. Optimize the End-to-End System
 
 Parameter count alone is not capability or cost. Measure active FLOPs, memory bandwidth, KV cache, routing communication, retrieval latency, verification overhead, and total time-to-correct-answer.
+
+## 14. No Hype Without Measurement
+
+Architecture claims require matched ablations, held-out benchmarks, system-cost measurements, uncertainty, and failure analysis. A compelling diagram, fluent demonstration, or single best seed is not evidence of a breakthrough.
+
+## 15. Complex Internals, Simple Contracts
+
+The algorithm may be internally complex, but every module exposes a clean versioned interface, measurable inputs and outputs, bounded state, explicit failure semantics, and a reversible feature flag. A module that cannot be isolated cannot support a credible causal claim.
+
+## 16. Adaptive Intelligence, Not One-Size-Fits-All
+
+The system degrades explicitly across Nano, Lite, Balanced, Pro, and Max profiles by selecting evaluated artifacts, context, experts, cycles, and services. Profiles may differ in capability, but they preserve API semantics, permissions, provenance, and safety invariants.
+
+## 17. Safe Memory Before Self-Learning
+
+The system may use resettable working memory and approved persistent memory, but released base weights do not mutate during serving. Any weight update belongs to an explicit offline training procedure with governed data, evaluation, artifact lineage, review, and rollback.

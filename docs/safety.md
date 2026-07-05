@@ -108,3 +108,36 @@ Safety-relevant logs must be tamper-evident enough for their threat level, while
 ## 13. Non-Claims
 
 Passing a benchmark does not prove alignment. DPO does not create a correct objective. An SAE feature does not reveal a complete thought. A verifier can be wrong. A refusal style can be gamed. Sandboxing lowers impact but does not make an action wise. These limitations must appear in release documentation.
+
+## 14. Advanced Architecture Safety Risks
+
+Aegis-X adds new state, routing, checking, and effect interfaces. Its safety case therefore tracks the following as distinct risks rather than hiding them under generic alignment language:
+
+| Risk | Example failure | Required response |
+|---|---|---|
+| reward hacking | maximizes verifier/reward score while failing the intended task | hidden objectives, independent checks, immutable evaluation logs |
+| goal misgeneralization | follows a learned proxy under distribution shift | proxy-breaking and constraint-shift evaluations |
+| mesa-optimization | learned computation behaves like optimization for an unintended internal objective | capability limits, behavioral stress tests, cautious interpretability claims |
+| deceptive alignment | behavior changes when oversight or deployment conditions appear different | oversight-shift tests; never claim a universal deception detector |
+| instrumental convergence | proposes unnecessary persistence, resources, concealment, or control | hard permission, budget, persistence, and delegation limits |
+| unsafe tool use | proposes harmful or unauthorized arguments/actions | schema and semantic validation, sandboxing, approval, receipts |
+| memory poisoning | stores false, adversarial, cross-user, or policy-like content | provenance, owner scope, conflict checks, reset/deletion, write approval |
+| self-modification | attempts to alter weights, code, configuration, policy, or evaluators | serving-time mutation denied; offline governed release path only |
+| hidden persistence | encodes state outside approved session or memory stores | storage/network isolation, lifecycle tests, auditable writes |
+| simulator bypass | treats an untested plan as simulated/validated or escapes the simulation boundary | signed checker identity, environment isolation, explicit inconclusive state |
+| verifier gaming | targets checker shortcuts or suppresses unfavorable findings | checker diversity, hidden tests, immutable findings, false-pass audits |
+
+### Hard Controls
+
+- no autonomous base-weight mutation;
+- no unrestricted tool, network, filesystem, account, or actuator execution;
+- no hidden long-term memory writes or model-selected retention policy;
+- no self-replication, autonomous deployment, or background persistence capability;
+- no objective or permission to acquire compute, money, credentials, influence, or other resources;
+- every action plan passes typed capability, argument, budget, and permission gates;
+- high-risk or irreversible actions require a concrete preview and human approval;
+- model-generated plans, calls, checks, approvals, and side-effect receipts are logged and auditable;
+- verifiers and simulators can return `inconclusive` or `error`; those states never count as approval;
+- safety controls remain external to model-generated prose and cannot be disabled by the model.
+
+These controls reduce reachable harm even when model internals are misunderstood. They do not prove that the model has safe goals.

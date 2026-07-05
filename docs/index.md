@@ -4,6 +4,7 @@ This is the authoritative navigation page. Documents are split by responsibility
 
 ## Project Definition
 
+- [Aegis-X Grand Plan](aegis-x-grand-plan.md) — long-term complete system hypothesis and acceptance gates
 - [Vision](vision.md) — mission, success definition, scope, and non-goals
 - [Engineering principles](principles.md) — rules used to resolve design tradeoffs
 - [Glossary](glossary.md) — canonical vocabulary and overloaded terms
@@ -14,7 +15,8 @@ This is the authoritative navigation page. Documents are split by responsibility
 
 - [Architecture](architecture.md) — whole-system boundaries and end-to-end flows
 - [Aegis Framework](framework.md) — runtime, orchestration, policy, tools, observability, and APIs
-- [SARN model](model.md) — baseline control model, SARN-Hybrid target architecture, and evidence-gated variants
+- [SARN-Hybrid Target Algorithm](model.md#2-sarn-hybrid-target-algorithm) — integrated model hypothesis and ablatable mechanisms
+- [SARN model specification](model.md) — baseline control model, target algorithm, and evidence-gated variants
 - [Research matrix](research-matrix.md) — every discussed idea classified by hybrid role, status, and evidence
 - [Interfaces](interfaces.md) — shared schemas and module contracts
 - [Memory and retrieval](memory.md) — context, working memory, persistence, retrieval, and provenance
