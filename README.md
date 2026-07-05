@@ -1,15 +1,18 @@
 # Aegis-SARN
 
-Aegis-SARN is a documentation-first research and engineering project with two connected deliverables:
+Aegis-SARN is a documentation-first research program for a **new hardware-adaptive hybrid cognitive architecture and runtime**. Its intended destination is SARN-Hybrid: a learned architecture that combines efficient sequence modeling, sparse conditional capacity, a latent graph workspace, resettable working memory, and explicit integration points for an evidence-governed runtime.
 
-1. **Aegis Framework** — a hardware-aware runtime for model execution, memory, retrieval, tools, verification, safety policy, observability, evaluation, and deployment.
-2. **SARN model family** — a reproducible language-model baseline and a sequence of measured experiments in sparse routing, explicit working memory, latent graph computation, efficient sequence layers, and interpretability.
+The program has three named parts:
 
-The project is not a claim that one small model can provide frontier intelligence on every device without loss. Its measurable objective is **the best verified capability attainable under an explicit compute, memory, energy, and latency budget**. Different hardware tiers may use different checkpoints and features while preserving one framework contract.
+1. **Aegis Framework** — the hardware-aware runtime and control plane for model execution, retrieval, persistent memory, tools, verification, safety policy, observability, evaluation, and deployment.
+2. **SARN-Dense** — the reproducible decoder-only Transformer baseline and scientific control used to validate the stack and measure every architectural claim.
+3. **SARN-Hybrid** — the target experimental model architecture assembled through evidence-gated stages, with every mechanism independently configurable, removable, and measurable.
+
+The ambition is architectural, not rhetorical. The project does not claim that SARN-Hybrid already works, that one small model can provide frontier intelligence on every device, or that compression has no loss. Its measurable objective is **the best verified capability attainable under explicit compute, memory, energy, and latency budgets**. Different hardware tiers may use different checkpoints and features while preserving one framework contract and one set of safety invariants.
 
 ## Status
 
-**Phase 0 — specification.** There is currently no model, training pipeline, or runtime implementation in this repository. The documentation defines what will be built, in what order, and what evidence is required before an experimental idea becomes part of the architecture.
+**Phase 0 — specification.** There is currently no model, training pipeline, or runtime implementation in this repository. Phase 1 builds SARN-Dense and the Aegis spine; later phases construct SARN-Hybrid. The documentation defines what will be built, in what order, and what evidence is required before an experimental mechanism becomes a default part of the hybrid architecture.
 
 ## Start Here
 
@@ -24,6 +27,7 @@ The project is not a claim that one small model can provide frontier intelligenc
 ## Working Rules
 
 - Baselines come before novel modules.
+- SARN-Dense is the control group; SARN-Hybrid is the architecture target.
 - Every experiment changes one controlled variable where practical.
 - “Reasoning,” “memory,” “safety,” and “interpretability” require operational definitions and tests.
 - Sparse activation reduces active computation, not necessarily storage or memory traffic.

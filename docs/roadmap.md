@@ -2,7 +2,7 @@
 
 ## 1. Roadmap Rules
 
-This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection. Later phases do not imply that every earlier experimental module was accepted.
+This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–3 build the SARN-Dense control and evaluation laboratory. Phases 4–8 are the SARN-Hybrid construction path. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
 
 No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
 
@@ -40,45 +40,55 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 
 **Exit gate:** an intentionally null architecture change produces no false “win”; repeated baseline runs quantify normal variance; raw-to-report lineage is auditable.
 
-## Phase 4 — Efficient Attention
+## SARN-Hybrid Construction Path — Phases 4–8
 
-**Goal:** reduce decode memory/cost without unmeasured quality loss.
+These phases construct one compatible hybrid model spine. Each phase first proves its mechanism in isolation, then preserves the tensor/configuration contracts needed for later integration. “Construction” states architectural direction; it does not waive an acceptance gate.
+
+## Phase 4 — Efficient Attention Foundation
+
+**Goal:** establish the RoPE/GQA attention foundation shared by SARN-Hybrid while reducing decode memory/cost without unmeasured quality loss.
 
 **Experiments:** MHA versus GQA; KV-cache precision; optional local attention; RoPE context behavior and carefully selected scaling methods.
 
 **Exit gate:** at least one profile shows a practically meaningful measured benefit at or above its quality floor, or all tested variants are documented as rejected. Accepted settings remain configurable rather than deleting the reference path.
 
-## Phase 5 — Latent Workspace and Graph Research
+## Phase 5 — Latent Workspace and Graph Core
 
-**Goal:** test whether bounded latent recurrence/message passing improves systematic tasks.
+**Goal:** construct and test the SARN-Hybrid latent workspace, graph message-passing cycles, and gated token-state writeback.
 
 **Deliverables:** workspace-only control; graph variants; soft/hard routing; top-k diagnostics; multi-cycle execution; visualizations labeled as latent states; full equal-compute and null ablations.
 
 **Exit gate:** a variant passes the [benchmark acceptance gates](benchmarks.md), including held-out structural shifts and multi-seed evidence, or the hypothesis is narrowed/rejected. No human-concept claim is accepted without causal interpretability evidence.
 
-## Phase 6 — Resettable Working Memory
+## Phase 6 — Resettable Working Memory Core
 
-**Goal:** improve temporary association/state tasks without online weight mutation.
+**Goal:** add bounded temporary association/state to the hybrid path without online mutation of base weights.
 
 **Deliverables:** at least one simple key/value control; one neural or fast-weight mechanism; optional Hebbian-style update; strict allocation/reset/isolation; conflict, capacity, poisoning, and leakage evaluations; Aegis lifecycle integration.
 
 **Exit gate:** improvement over both token-context and simple external-memory controls at matched budget, with complete reset and no cross-session leakage. Otherwise prefer the simpler framework memory.
 
-## Phase 7 — Sequence Architecture Research
+## Phase 7 — Hybrid Sequence Engine
 
-**Goal:** evaluate attention, SSM, and hybrid behavior on relevant long-sequence workloads.
+**Goal:** evaluate and, if justified, integrate selective SSM blocks beside the accepted attention foundation on relevant long-sequence workloads.
 
-**Deliverables:** selected Mamba-style or equivalent SSM reference; attention-only, SSM-only, and hybrid controls; kernel and complexity profiling; long-context and ordinary-language regression suite.
+**Deliverables:** selected Mamba-style or equivalent SSM reference; attention-only, SSM-only, and hybrid controls behind one sequence-block contract; kernel and complexity profiling; long-context and ordinary-language regression suite; integrated SARN-Hybrid configuration if the gate passes.
 
 **Exit gate:** a target profile/workload has better quality-cost tradeoff with stable training. “Linear complexity” alone is not an exit criterion.
 
-## Phase 8 — Sparse Expert Research
+## Phase 8 — Sparse Expert Capacity
 
-**Goal:** test conditional capacity at a scale and hardware topology where it can matter.
+**Goal:** test conditional expert capacity as the optional sparse-capacity stage of SARN-Hybrid at a scale and hardware topology where it can matter.
 
 **Deliverables:** dense control; top-k router; capacity handling; load-balancing metrics/loss; router stability and expert analysis; total versus active parameter and memory reports; expert-parallel measurements if distributed.
 
 **Exit gate:** specialization or quality improves at matched active cost without unacceptable collapse, communication, memory, or edge regressions. MoE may remain server-only or be rejected.
+
+### SARN-Hybrid Core Integration Gate
+
+After Phase 8, train the strongest evidence-supported combination end to end. Compare it with SARN-Dense and equal-compute controls; ablate attention configuration, workspace, graph cycles, working memory, optional SSM blocks, and optional experts. The integrated result must report interaction effects, stability, active/total cost, and hardware-specific behavior. Passing isolated phases does not guarantee this integration gate passes.
+
+## External Knowledge and Assurance Path — Phases 9–10
 
 ## Phase 9 — Retrieval, Memory Service, and Provenance
 
@@ -103,6 +113,10 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 **Deliverables:** governed SFT set; SFT checkpoint; preference schema and annotator guide; DPO experiment; shortcut audits; calibration and safety suites; structured-call training if needed.
 
 **Exit gate:** practical instruction-following gain with acceptable base-capability, truthfulness, calibration, and safety deltas. Preference tuning is not represented as proof of alignment.
+
+## Deployment and Compression Path — Phases 12–13
+
+These phases turn accepted SARN-Dense and SARN-Hybrid configurations into measured hardware profiles. They optimize deployment without changing the model/runtime safety boundary.
 
 ## Phase 12 — Hardware-Adaptive Runtime
 
@@ -140,9 +154,10 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 
 - **0.1 Research Spine:** Phase 1 complete.
 - **0.2 Baseline Lab:** Phases 2–3 complete.
-- **0.3 SARN Experimental:** at least one Phase 4–8 hypothesis decided with evidence.
+- **0.3 SARN-Hybrid Core:** at least one hybrid module passes its evidence gate and integrates behind a feature flag.
 - **0.4 Local Knowledge Runtime:** Phase 9 complete.
 - **0.5 Checked Assistant:** Phase 10 and selected Phase 11 work complete.
+- **0.6 SARN-Hybrid Alpha:** efficient attention, workspace/graph, and resettable working-memory paths are integrated behind feature flags and have passed the combined ablation gate.
 - **1.0 Supported Local Platform:** stable APIs, measured hardware profiles, release/security process, and at least one maintained model path. No claim of AGI or universal capability is attached to 1.0.
 
 ## Immediate Backlog

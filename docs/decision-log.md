@@ -2,6 +2,23 @@
 
 This file indexes accepted project-level decisions. Once implementation begins, substantial decisions should use individual ADR files under `reports/decisions/` with context, options, consequences, evidence, status, and supersession links.
 
+## ADR-0001 — SARN-Dense Is the Control; SARN-Hybrid Is the Target
+
+**Status:** accepted, 2026-07-05. Clarifies and extends D-004.
+
+**Decision:** the project starts with SARN-Dense, a decoder-only Transformer, for correctness, reproducibility, and comparison. The long-term model research target is SARN-Hybrid: an integrated architecture combining efficient RoPE/GQA sequence modeling, optional selective SSM blocks, optional sparse experts, a latent graph workspace, resettable working memory, and gated token-state writeback. Aegis supplies retrieval, persistent memory, verification, interpretability infrastructure, policy, and hardware-adaptive deployment around the learned model.
+
+**Reason:** the project needs both a falsifiable control and an unmistakable architecture thesis. Treating every mechanism as an unrelated experiment obscures the intended integration; treating every mechanism as already proven would abandon scientific discipline.
+
+**Consequences:**
+
+- no hybrid mechanism is accepted because of novelty or hype;
+- all SARN-Hybrid mechanisms remain behind explicit feature flags until accepted;
+- dense and null controls remain available for every hybrid stage;
+- architecture claims require matched baselines, ablations, system costs, and held-out evaluation;
+- isolated module wins do not establish success until the combined hybrid path passes its integration gate;
+- a rejected optional accelerator changes the final configuration without ending the SARN-Hybrid program.
+
 ## D-001 — Documentation-First Foundation
 
 **Status:** accepted, 2026-07-05.
@@ -36,7 +53,7 @@ This file indexes accepted project-level decisions. Once implementation begins, 
 
 **Status:** accepted, 2026-07-05.
 
-**Decision:** implement a small causal decoder-only Transformer before graph, memory, MoE, SSM, or multimodal additions.
+**Decision:** implement SARN-Dense, a small causal decoder-only Transformer, before graph, memory, MoE, SSM, or multimodal additions. It is the control architecture for the SARN-Hybrid construction path defined by ADR-0001.
 
 **Reason:** GPT-style language models are Transformers; a conventional baseline is needed to validate the pipeline and attribute gains.
 

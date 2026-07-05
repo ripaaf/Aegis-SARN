@@ -14,8 +14,8 @@ This is the authoritative navigation page. Documents are split by responsibility
 
 - [Architecture](architecture.md) — whole-system boundaries and end-to-end flows
 - [Aegis Framework](framework.md) — runtime, orchestration, policy, tools, observability, and APIs
-- [SARN model](model.md) — baseline model and isolated research variants
-- [Research matrix](research-matrix.md) — every discussed idea classified and traced to evidence
+- [SARN model](model.md) — SARN-Dense control and the SARN-Hybrid target architecture
+- [Research matrix](research-matrix.md) — every discussed idea classified by hybrid role, status, and evidence
 - [Interfaces](interfaces.md) — shared schemas and module contracts
 - [Memory and retrieval](memory.md) — context, working memory, persistence, retrieval, and provenance
 - [Runtime and deployment](runtime.md) — hardware profiles, quantization, packaging, and graceful degradation

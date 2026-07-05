@@ -72,23 +72,52 @@ Records structured events, timings, budgets, model and config identity, memory a
 
 ## 3. SARN Model Boundary
 
-The initial model is a conventional causal Transformer. Experimental modules attach at declared extension points:
+SARN owns learned tensor computation; Aegis owns orchestration and effects. The project has two explicit model paths.
+
+### 3.1 Phase 1 Control Path
 
 ```text
-token IDs
-  -> embedding
-  -> N x sequence block
-       attention (RoPE; MHA or GQA)
-       optional SSM alternative
-       dense FFN or optional sparse experts
-  -> optional latent workspace / graph cycles
-  -> optional resettable working-memory read
-  -> normalization
-  -> tied language-model head
-  -> logits
+request
+  -> Aegis Runtime
+  -> context and budget preparation
+  -> SARN-Dense
+       embedding + RoPE
+       dense causal Transformer blocks
+       decoder head
+  -> candidate output
+  -> Aegis response policy and trace
 ```
 
-The diagram is a search space, not the Phase 1 default. Each optional path must be independently configurable and ablatable. Full details are in [SARN model](model.md).
+SARN-Dense establishes correctness, training behavior, model/runtime contracts, and matched baselines. It is not the final architectural identity.
+
+### 3.2 Long-Term Hybrid Path
+
+```text
+Aegis Runtime
+  -> trusted policy + typed context + resource budget
+  -> SARN-Hybrid
+       embedding + RoPE
+       hybrid sequence engine
+         GQA attention
+         optional selective SSM blocks
+       dense control or sparse expert capacity
+       latent workspace slots
+       graph message-passing cycles
+       resettable working-memory read/update
+       gated writeback to token states
+       decoder head
+  -> candidate + model telemetry + verifier hooks
+  -> Aegis retrieval/tool/verification/repair controls
+  -> checked output, qualified output, refusal, or authorized action
+```
+
+This diagram is the declared SARN-Hybrid construction target, not a claim of present implementation or success. Core stages and optional accelerators remain independently configurable and ablatable. A dense/attention-only route stays available for controls and hardware fallback. Full details are in [SARN model](model.md).
+
+### 3.3 Ownership Boundary
+
+SARN-Hybrid may emit logits, structured call proposals, latent-state summaries, uncertainty-related signals, and instrumentation hooks. It may update only bounded run/session neural state allocated by Aegis. It cannot commit persistent memory, execute tools, acquire resources, alter policy, or decide that a verifier passed.
+
+Aegis selects artifacts and budgets, constructs context, authorizes capabilities, stores persistent memory, runs retrieval and tools, invokes verifiers, limits repair, and records the trace. These invariants remain true even if future training makes SARN-Hybrid more capable.
 
 ## 4. End-to-End Flows
 

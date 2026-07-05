@@ -6,7 +6,33 @@ Every reported result names the artifact and configuration digest, data and benc
 
 Scores without systems cost are incomplete for this project. Systems numbers without task quality are equally incomplete.
 
-## 2. Evaluation Layers
+## 2. Breakthrough Metrics
+
+SARN-Hybrid claims require simultaneous model-quality and system-cost evidence. “Intelligence” is never reported as an undefined scalar; each efficiency ratio names the task suite, quality aggregation, denominator, and hardware measurement method.
+
+### Capability-Efficiency Frontiers
+
+- **intelligence per active FLOP:** predeclared composite or task-specific quality divided by measured/estimated active forward compute, with the aggregation and FLOP method published;
+- **quality per watt:** task quality alongside average and peak power plus energy per completed request; wattage alone is not energy efficiency;
+- **quality per MB:** task quality against peak resident RAM/VRAM and separately against artifact storage;
+- **time-to-verified-correct-answer:** end-to-end latency through retrieval, generation, checking, repair, and final correct acceptance;
+- **active/total capacity frontier:** quality versus active parameters, total resident parameters, and model bytes so sparse systems cannot hide storage cost.
+
+Ratios supplement rather than replace Pareto plots. A model can game a ratio by becoming extremely small and useless, so every profile also has minimum absolute quality and safety floors.
+
+### Hybrid-Architecture Stress Tests
+
+- **long-context recall under memory pressure:** recall as context grows while RAM/VRAM or KV-cache budgets are fixed;
+- **structural generalization:** performance on held-out compositions, values, templates, graph sizes, and state transitions;
+- **graph reasoning length extrapolation:** accuracy and calibration beyond trained path/rule-chain lengths, with dense equal-compute controls;
+- **working-memory conflict handling:** retention, overwrite, contradiction, interference, expiry, and complete-reset curves;
+- **sparse expert collapse:** utilization, routing entropy, overflow/drop rate, specialization, and worst-expert load through training;
+- **hardware degradation curve:** quality, latency, energy, context, and enabled-capability changes from Max/Pro through Nano rather than one best-device point;
+- **integration efficiency:** SARN-Hybrid versus SARN-Dense at matched parameters, active FLOPs, measured latency, and memory, followed by stage-by-stage ablation.
+
+No architecture-breakthrough claim is supported by quality-only or systems-only improvement. The result must state which frontier moved, by how much, on which workload and hardware, and with which regressions.
+
+## 3. Evaluation Layers
 
 ### Model Quality
 
@@ -52,7 +78,7 @@ Synthetic generators publish structural splits. Random example splits alone are 
 - train/deploy condition changes relevant to deceptive-behavior concerns;
 - denial-of-service attempts against token, retrieval, and tool budgets.
 
-## 3. Systems Metrics
+## 4. Systems Metrics
 
 Measure:
 
@@ -72,7 +98,7 @@ Measure:
 
 Warmup, synchronization, sampling count, percentiles, clock/thermal conditions, and measurement tools are documented.
 
-## 4. Comparison Matrix
+## 5. Comparison Matrix
 
 Every novel model module is compared with the strongest practical subset of:
 
@@ -85,7 +111,7 @@ Every novel model module is compared with the strongest practical subset of:
 
 Matched parameter count and matched active compute answer different questions; neither may be substituted silently.
 
-## 5. Required Ablations
+## 6. Required Ablations
 
 An architecture result reports the full model, each module removed, key hyperparameter sweeps, and meaningful null/shuffled controls. Combination gains require interaction tests: if A and B each help alone, measure baseline, A, B, and A+B.
 
@@ -93,7 +119,7 @@ For verifier loops, report raw accuracy, accepted accuracy, coverage, false acce
 
 For retrieval, separate retrieval recall, reader accuracy given gold evidence, end-to-end accuracy, citation linkage, and unsupported-claim rate.
 
-## 6. Statistical Practice
+## 7. Statistical Practice
 
 - predeclare a primary metric and threshold;
 - use multiple training seeds for claims sensitive to initialization;
@@ -103,19 +129,19 @@ For retrieval, separate retrieval recall, reader accuracy given gold evidence, e
 - publish per-example outputs or hashes when licensing permits;
 - distinguish practical effect size from statistical significance.
 
-## 7. Scaling and Training Phenomena
+## 8. Scaling and Training Phenomena
 
 The Scaling Observatory records train/validation loss and task metrics against parameters, data tokens, optimizer steps, and compute. This is where double descent and grokking are studied. Neither is assumed to appear; plots and definitions are fixed before interpreting them.
 
 Track repetition, diversity, router/expert collapse, and task specialization precisely. “Mode collapse” is reserved for its standard GAN context unless an experiment explicitly defines an analogous metric.
 
-## 8. Benchmark Integrity
+## 9. Benchmark Integrity
 
 Final test sets are access-controlled or sealed until configuration selection ends. Prompts and answers are scanned against training data where feasible. Repeated manual inspection of a test set converts it into development data and requires a new test set.
 
 Public benchmarks are supplemented with private or procedurally generated variants. No single leaderboard score determines architecture acceptance.
 
-## 9. Acceptance Gates
+## 10. Acceptance Gates
 
 A module can be accepted when:
 

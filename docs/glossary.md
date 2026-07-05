@@ -4,6 +4,8 @@
 
 - **Aegis**: the framework and control plane surrounding models.
 - **SARN**: Sparse Adaptive Reasoning Network, the model family and experimental architecture.
+- **SARN-Dense**: the decoder-only Transformer baseline and scientific control for architecture comparisons.
+- **SARN-Hybrid**: the target evidence-gated model architecture combining efficient attention, latent graph workspace, resettable working memory, gated writeback, and optional SSM/MoE accelerators.
 - **profile**: a named set of resource limits and enabled capabilities for a hardware class.
 - **run**: one bounded execution of a request, including retrieval, model calls, checks, and tools.
 - **artifact**: a content-addressed model, tokenizer, dataset manifest, evaluation result, or release package.

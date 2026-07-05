@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Aegis is the reusable runtime and control plane. It should remain useful even if every novel SARN hypothesis fails: a compatible Transformer or third-party local model must still be loadable behind the same contracts.
+Aegis is the reusable runtime and control plane built to train, evaluate, govern, and deploy the SARN-Hybrid program. It also hosts SARN-Dense and compatible third-party models behind the same contracts, preserving a working system and comparison path while individual hybrid mechanisms are still being validated.
 
 The framework is responsible for orchestration and effects, not for pretending that orchestration is part of model intelligence.
 

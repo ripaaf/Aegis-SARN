@@ -6,6 +6,22 @@ Build an open, inspectable AI research stack that extracts as much **verified us
 
 The project develops both the surrounding cognitive runtime and the models it runs. The runtime should also host compatible third-party models, so framework progress is not blocked on successfully inventing a new neural architecture.
 
+## Grand Architecture Thesis
+
+The long-term research target is **SARN-Hybrid**, a new hybrid model architecture designed to scale useful cognition across more than dense parameter count alone. Its planned spine combines:
+
+- RoPE and grouped-query attention as the efficient attention foundation;
+- attention with optional selective state-space blocks in a hybrid sequence engine;
+- sparse conditional expert capacity where routing provides measured value;
+- persistent latent workspace slots for internal state;
+- graph message-passing cycles for structured latent computation;
+- resettable fast or working memory for temporary associations;
+- gated read/write paths between token states, workspace, and working memory;
+- retrieval and bounded verification through the Aegis control plane;
+- compression and hardware-adaptive execution across measured deployment profiles.
+
+This is one intended research spine, not a bag of fashionable modules. SARN-Dense is built first as the control architecture. Each SARN-Hybrid mechanism is introduced behind a feature flag, compared with matched alternatives, and either accepted, revised, or rejected. The thesis is ambitious by design; evidence determines its final form.
+
 ## The Two Deliverables
 
 ### Aegis Framework
@@ -26,7 +42,8 @@ Aegis owns system-level responsibilities that do not belong inside model weights
 
 SARN owns learned computation:
 
-- a small, reproducible decoder-only Transformer baseline;
+- SARN-Dense, a small reproducible decoder-only Transformer baseline and control;
+- SARN-Hybrid, the target evidence-gated hybrid architecture;
 - efficient attention experiments such as RoPE and grouped-query attention;
 - optional sparse expert routing;
 - optional state-space or hybrid sequence blocks;
@@ -94,4 +111,4 @@ This project does not promise:
 
 ## Long-Term Direction
 
-If the language and framework foundations pass their gates, Aegis can add modality adapters: a vision encoder or VLM, segmentation through a dedicated model, speech encoders and decoders, and constrained action models. These are components in a governed system, not acronym checkboxes forced into a single network.
+The primary long-term direction is construction and evaluation of SARN-Hybrid. If its language and framework foundations pass their gates, Aegis can then add modality adapters: a vision encoder or VLM, segmentation through a dedicated model, speech encoders and decoders, and constrained action models. These are components in a governed system, not acronym checkboxes forced into a single network.
