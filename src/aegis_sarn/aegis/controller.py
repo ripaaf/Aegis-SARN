@@ -32,6 +32,8 @@ class SessionController:
                 'max_prompt_tokens': request.max_prompt_tokens,
                 'max_new_tokens': request.max_new_tokens,
                 'wall_time_ms': request.wall_time_ms,
+                'decoding_strategy': request.decoding_strategy,
+                'use_kv_cache': request.use_kv_cache,
             },
         )
         trace.emit('backend.started', self.backend.name)

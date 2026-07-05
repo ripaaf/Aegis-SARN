@@ -2,6 +2,7 @@
 
 from aegis_sarn.config import (
     ArtifactConfig,
+    DecodingConfig,
     ModelConfig,
     RunManifest,
     RuntimeConfig,
@@ -11,6 +12,7 @@ from aegis_sarn.config import (
 
 __all__ = [
     'ArtifactConfig',
+    'DecodingConfig',
     'ModelConfig',
     'RunManifest',
     'RuntimeConfig',

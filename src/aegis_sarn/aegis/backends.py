@@ -8,7 +8,8 @@ from typing import Any, Protocol
 import torch
 
 from aegis_sarn.aegis.schemas import RunRequest
-from aegis_sarn.sarn import ByteTokenizer, SARNDense, generate_greedy
+from aegis_sarn.config import DecodingConfig
+from aegis_sarn.sarn import ByteTokenizer, SARNDense, generate
 from aegis_sarn.utils import set_global_seed
 
 
@@ -66,7 +67,17 @@ class SARNBackend:
         if not encoded:
             raise ValueError('prompt produced no tokens')
         input_ids = torch.tensor([encoded], dtype=torch.long, device=self.device)
-        generated = generate_greedy(self.model, input_ids, request.max_new_tokens)
+        decoding = DecodingConfig(
+            strategy=request.decoding_strategy,
+            max_new_tokens=request.max_new_tokens,
+            temperature=request.temperature,
+            top_k=request.top_k,
+            top_p=request.top_p,
+            stop_token_id=request.stop_token_id,
+            use_kv_cache=request.use_kv_cache,
+            seed=request.seed,
+        )
+        generated = generate(self.model, input_ids, decoding)
         new_ids = generated[0, input_ids.shape[1] :].tolist()
         return BackendOutput(
             text=self.tokenizer.decode(new_ids),
@@ -75,5 +86,6 @@ class SARNBackend:
             metadata={
                 'parameter_count': self.model.count_parameters(),
                 'device': str(self.device),
+                'decoding': decoding.to_dict(),
             },
         )

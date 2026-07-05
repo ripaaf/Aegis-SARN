@@ -7,6 +7,13 @@ from aegis_sarn.config import ModelConfig
 from aegis_sarn.sarn.model import SARNDense
 
 
+class FailingBackend:
+    name = 'failing'
+
+    def generate(self, request: RunRequest) -> object:
+        raise RuntimeError('intentional backend failure')
+
+
 def test_fake_backend_produces_structured_ordered_trace() -> None:
     result = SessionController(FakeBackend(response='accepted')).run(
         RunRequest(prompt='hello', max_new_tokens=4)
@@ -64,3 +71,12 @@ def test_wall_time_budget_is_reported() -> None:
     assert result.status == 'budget_exhausted'
     assert result.text == ''
     assert any(event.event_type == 'budget.exhausted' for event in result.trace)
+
+
+def test_backend_failure_has_structured_error_and_end_event() -> None:
+    result = SessionController(FailingBackend()).run(RunRequest(prompt='hello'))
+    event_types = [event.event_type for event in result.trace]
+    assert result.status == 'model_error'
+    assert event_types[0] == 'run.created'
+    assert event_types[-2:] == ['backend.failed', 'run.failed']
+    assert result.trace[-2].payload['error_type'] == 'RuntimeError'

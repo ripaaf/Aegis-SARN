@@ -37,4 +37,16 @@ def test_one_batch_overfit_decreases_loss_and_resumes(tmp_path: Path) -> None:
     assert manifest['status'] == 'completed'
     assert manifest['metrics']['completed_step'] == 26
     assert manifest['artifacts']['checkpoint_digest'].startswith('sha256:')
-
+    assert {
+        'command_args',
+        'config_hash',
+        'created_at',
+        'device_info',
+        'git_commit',
+        'metrics',
+        'package_version',
+        'seed_config',
+        'trace_events',
+    }.issubset(manifest)
+    assert manifest['trace_events'][0]['event_type'] == 'train.started'
+    assert manifest['trace_events'][-1]['event_type'] == 'run.completed'

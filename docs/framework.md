@@ -6,7 +6,7 @@ Aegis is the reusable runtime and control plane built to train, evaluate, govern
 
 The framework is responsible for orchestration and effects, not for pretending that orchestration is part of model intelligence.
 
-**Phase 1 implementation status:** validated run/config dataclasses, a synchronous session controller, token and wall-time budgets, fake and SARN-Dense backends, ordered trace events, and a JSON CLI path exist. Wall time is measured and reported around synchronous generation; cooperative cancellation/preemption is not yet implemented. Hardware profiling, artifact registry, retrieval, persistent memory, tools, policy bundles, verification, cancellation, and service APIs remain specifications only.
+**Phase 1 implementation status:** validated run/config dataclasses, a synchronous session controller, token and wall-time budgets, fake and SARN-Dense backends, opt-in KV-cached decoding, ordered trace events, reproducibility manifests, toy evaluation, CPU microbenchmarking, and JSON CLI paths exist. Wall time is measured and reported around synchronous generation; cooperative cancellation/preemption is not yet implemented. General hardware profiling, an artifact registry, retrieval, persistent memory, tools, policy bundles, verification, cancellation, and service APIs remain specifications only.
 
 ## 2. Required Subsystems
 

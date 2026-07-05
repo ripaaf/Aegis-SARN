@@ -10,6 +10,7 @@ from uuid import uuid4
 import torch
 from torch.optim import AdamW, Optimizer
 
+from aegis_sarn.aegis.trace import TraceRecorder
 from aegis_sarn.config import (
     ArtifactConfig,
     ModelConfig,
@@ -22,7 +23,16 @@ from aegis_sarn.sarn.checkpoint import load_checkpoint, save_checkpoint
 from aegis_sarn.sarn.data import ToyBatch, repeated_pattern_batch
 from aegis_sarn.sarn.generation import generate_greedy
 from aegis_sarn.sarn.model import SARNDense
-from aegis_sarn.utils import set_global_seed, sha256_file, write_json
+from aegis_sarn.utils import (
+    config_hash,
+    device_info,
+    git_commit,
+    normalize_json,
+    package_version,
+    set_global_seed,
+    sha256_file,
+    write_json,
+)
 
 
 @dataclass(slots=True)
@@ -85,6 +95,7 @@ def run_smoke_training(
     training_config: TrainingConfig | None = None,
     seed_config: SeedConfig | None = None,
     artifact_config: ArtifactConfig | None = None,
+    command_args: dict[str, object] | None = None,
 ) -> SmokeTrainingResult:
     model_config = model_config or ModelConfig()
     training_config = training_config or TrainingConfig()
@@ -95,6 +106,14 @@ def run_smoke_training(
     if model_config.vocab_size < 5:
         raise ValueError('smoke training requires vocab_size >= 5')
 
+    run_id = str(uuid4())
+    created_at = datetime.now(timezone.utc).isoformat()
+    trace = TraceRecorder(run_id)
+    trace.emit(
+        'train.started',
+        'sarn.trainer',
+        {'steps': training_config.max_steps, 'device': training_config.device},
+    )
     set_global_seed(seed_config)
     batch = repeated_pattern_batch(
         batch_size=training_config.batch_size,
@@ -104,12 +123,22 @@ def run_smoke_training(
     losses, optimizer = train_steps(
         model, batch, training_config, training_config.max_steps
     )
+    trace.emit(
+        'train.completed',
+        'sarn.trainer',
+        {'initial_loss': losses[0], 'final_loss': losses[-1]},
+    )
     save_checkpoint(
         artifact_config.checkpoint_path,
         model,
         optimizer,
         training_config.max_steps,
         training_config,
+    )
+    trace.emit(
+        'checkpoint.saved',
+        'sarn.checkpoint',
+        {'path': str(artifact_config.checkpoint_path), 'step': training_config.max_steps},
     )
 
     resumed_model = SARNDense(model_config).to(training_config.device)
@@ -124,10 +153,16 @@ def run_smoke_training(
         resumed_optimizer,
         map_location=training_config.device,
     )
+    trace.emit('checkpoint.loaded', 'sarn.checkpoint', {'step': loaded.step})
     resumed_losses, resumed_optimizer = train_steps(
         resumed_model, batch, training_config, 1, resumed_optimizer
     )
     completed_step = loaded.step + 1
+    trace.emit(
+        'train.resumed',
+        'sarn.trainer',
+        {'completed_step': completed_step, 'loss': resumed_losses[-1]},
+    )
     save_checkpoint(
         artifact_config.checkpoint_path,
         resumed_model,
@@ -140,18 +175,41 @@ def run_smoke_training(
     evaluation_loss = evaluate_loss(
         resumed_model, batch.input_ids, batch.labels
     )
+    trace.emit(
+        'evaluation.completed',
+        'sarn.evaluation',
+        {'loss': evaluation_loss},
+    )
     prompt = batch.input_ids[:1, :4].to(training_config.device)
     generated = generate_greedy(resumed_model, prompt, max_new_tokens=8)
+    trace.emit(
+        'generation.completed',
+        'sarn.generation',
+        {'prompt_tokens': prompt.shape[1], 'generated_tokens': 8},
+    )
 
-    run_id = str(uuid4())
+    trace.emit('run.completed', 'sarn.training_workflow', {'status': 'completed'})
+    configuration_payload = {
+        'model': model_config.to_dict(),
+        'training': training_config.to_dict(),
+        'seed': seed_config.to_dict(),
+        'artifact': artifact_config.to_dict(),
+    }
     manifest = RunManifest(
         run_id=run_id,
         run_name='phase1-smoke',
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=created_at,
         status='completed',
         model_config=model_config.to_dict(),
         training_config=training_config.to_dict(),
         seed_config=seed_config.to_dict(),
+        runtime_config={'device': training_config.device},
+        decoding_config={'strategy': 'greedy', 'max_new_tokens': 8},
+        package_version=package_version(),
+        git_commit=git_commit(),
+        device_info=device_info(training_config.device),
+        command='train-smoke',
+        command_args=normalize_json(command_args or {}),
         artifacts={
             'checkpoint': str(artifact_config.checkpoint_path),
             'checkpoint_digest': sha256_file(artifact_config.checkpoint_path),
@@ -162,6 +220,8 @@ def run_smoke_training(
             'evaluation_loss': evaluation_loss,
             'completed_step': completed_step,
         },
+        trace_events=[event.to_dict() for event in trace.events],
+        config_hash=config_hash(configuration_payload),
     )
     write_json(artifact_config.manifest_path, manifest.to_dict())
     return SmokeTrainingResult(

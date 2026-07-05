@@ -26,6 +26,12 @@ class RunRequest:
     max_prompt_tokens: int = 64
     wall_time_ms: int = 30_000
     seed: int = 7
+    decoding_strategy: Literal['greedy', 'sample'] = 'greedy'
+    temperature: float = 1.0
+    top_k: int | None = None
+    top_p: float | None = None
+    stop_token_id: int | None = None
+    use_kv_cache: bool = False
     request_id: str = field(default_factory=lambda: str(uuid4()))
     session_id: str | None = None
     schema_version: str = 'aegis.run_request/v1'
@@ -39,6 +45,16 @@ class RunRequest:
             raise ValueError('wall_time_ms must be positive')
         if self.seed < 0:
             raise ValueError('seed cannot be negative')
+        if self.decoding_strategy not in ('greedy', 'sample'):
+            raise ValueError('decoding_strategy must be greedy or sample')
+        if self.temperature <= 0:
+            raise ValueError('temperature must be positive')
+        if self.top_k is not None and self.top_k <= 0:
+            raise ValueError('top_k must be positive or None')
+        if self.top_p is not None and not 0.0 < self.top_p <= 1.0:
+            raise ValueError('top_p must be in (0, 1] or None')
+        if self.stop_token_id is not None and self.stop_token_id < 0:
+            raise ValueError('stop_token_id cannot be negative')
         if self.schema_version != 'aegis.run_request/v1':
             raise ValueError('unsupported RunRequest schema version')
 
@@ -67,6 +83,7 @@ class RunResult:
     usage: RunUsage
     trace: list[TraceEvent]
     limitations: list[str] = field(default_factory=list)
+    manifest_path: str | None = None
     schema_version: str = 'aegis.run_result/v1'
 
     def to_dict(self) -> dict[str, Any]:
@@ -81,5 +98,5 @@ class RunResult:
             'usage': self.usage.to_dict(),
             'trace': [event.to_dict() for event in self.trace],
             'limitations': self.limitations,
+            'manifest_path': self.manifest_path,
         }
-

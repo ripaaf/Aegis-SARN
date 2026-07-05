@@ -15,7 +15,7 @@ The ambition is architectural, not rhetorical. The project does not claim that S
 
 ## Status
 
-**Phase 1 — minimum baseline implemented.** The repository now contains a CPU-first SARN-Dense micro model, deterministic generated tasks, smoke training/checkpoint resume, and the minimal Aegis request/backend/trace/CLI spine. SARN-Hybrid, retrieval, tools, working memory, SSM, MoE, and multimodal modules remain unimplemented by design.
+**Phase 1 — dense baseline and hardening implemented.** The repository contains a CPU-first SARN-Dense micro model, deterministic generated tasks, smoke training/checkpoint resume, optional KV-cached generation, greedy and sampled decoding, toy evaluation and CPU benchmarking, and the minimal Aegis request/backend/manifest/trace/CLI spine. The full-prefix path remains the default; callers opt into the KV cache. SARN-Hybrid, retrieval, tools, working memory, SSM, MoE, and multimodal modules remain unimplemented by design.
 
 ## Phase 1 Quickstart
 
@@ -38,6 +38,18 @@ Run the deterministic CPU smoke trainer. It overfits a generated repeated-patter
 aegis-sarn train-smoke --output-dir artifacts/phase1 --device cpu
 ```
 
+Evaluate the toy validation task and write a JSON metrics manifest under `runs/`:
+
+```bash
+aegis-sarn eval-toy --checkpoint artifacts/phase1/sarn-dense-smoke.pt --output-dir runs --json
+```
+
+Measure CPU generation throughput, dense parameter counts, and approximate model/cache memory:
+
+```bash
+aegis-sarn bench --checkpoint artifacts/phase1/sarn-dense-smoke.pt --output-dir runs --use-kv-cache --json
+```
+
 Run the saved micro checkpoint through the Aegis controller and print the structured result and trace:
 
 ```bash
@@ -45,10 +57,17 @@ aegis-sarn run \
   --checkpoint artifacts/phase1/sarn-dense-smoke.pt \
   --prompt 'aegis sarn ' \
   --max-new-tokens 8 \
+  --use-kv-cache \
   --device cpu
 ```
 
-The byte tokenizer and toy corpus validate the pipeline; this checkpoint is not a useful natural-language model. Generated artifacts are ignored by Git.
+Sampling is explicit and reproducible from a fixed seed:
+
+```bash
+aegis-sarn run --checkpoint artifacts/phase1/sarn-dense-smoke.pt --prompt 'aegis sarn ' --strategy sample --temperature 0.8 --top-k 16 --top-p 0.9 --seed 7 --output-dir runs
+```
+
+Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. The byte tokenizer and toy corpus validate the pipeline; this checkpoint is not a useful natural-language model. Generated artifacts are ignored by Git.
 
 ## Start Here
 

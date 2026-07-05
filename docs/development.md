@@ -16,6 +16,8 @@ Reference commands:
 python -m pip install -e '.[dev]'
 python -m pytest
 aegis-sarn train-smoke --output-dir artifacts/phase1 --device cpu
+aegis-sarn eval-toy --checkpoint artifacts/phase1/sarn-dense-smoke.pt --output-dir runs --json
+aegis-sarn bench --checkpoint artifacts/phase1/sarn-dense-smoke.pt --output-dir runs --use-kv-cache --json
 aegis-sarn run --backend fake --prompt 'contract check'
 ```
 
@@ -101,6 +103,6 @@ Never commit secrets, private data, raw user traces, licensed datasets, or unrev
 
 ## 11. First Coding Issue
 
-The minimum dense micro-model vertical slice is implemented: validated model/training/runtime/seed/artifact configuration, RoPE causal MHA, decoder blocks, generated datasets, one-batch overfit, checkpoint and optimizer resume, greedy generation, and Aegis fake/SARN backend contracts.
+The dense micro-model vertical slice and its Phase 1 hardening are implemented: validated model/training/runtime/seed/artifact configuration, RoPE causal MHA, decoder blocks, generated datasets, one-batch overfit, checkpoint and optimizer resume, full-prefix and optional KV-cached generation, greedy/temperature/top-k/top-p decoding, toy evaluation, CPU benchmarking, and Aegis fake/SARN backend contracts with reproducibility manifests.
 
-Phase 1 hardening still includes KV-cache implementation/parity and optional sampled generation from the broader research roadmap. These are not silently claimed by the current minimum acceptance slice. SARN-Hybrid work must not begin until maintainers explicitly close or defer those hardening items through the roadmap.
+This is a stable experimental control, not evidence that the model is useful for natural language. SARN-Hybrid work remains outside Phase 1 and must not be inferred from the presence of future research specifications.

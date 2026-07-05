@@ -9,12 +9,12 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 ## Implementation Progress — 2026-07-05
 
 - **Phase 0 specification:** complete for the initial implementation boundary.
-- **Phase 1 minimum acceptance slice:** implemented and passing 17 CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, greedy decoding, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, and CLI output.
-- **Acceptance workflow:** a 40-step reference smoke run reduced loss from approximately `5.55` to `0.017`, resumed at step 41, wrote a checkpoint/manifest, reloaded through the Aegis CLI, generated six tokens, and completed a five-event trace.
-- **Phase 1 hardening still open:** KV-cache implementation/parity and optional sampled decoding from the broader workstream.
+- **Phase 1 dense baseline:** implemented with CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, and CLI output.
+- **Phase 1 hardening:** implemented with opt-in KV caching and cached/full-prefix parity, greedy/temperature/top-k/top-p decoding, stop tokens, deterministic sampling, toy loss/perplexity/accuracy evaluation, CPU generation benchmarking, and reproducibility manifests for train/eval/run/bench.
+- **Acceptance workflow:** the documented clean-clone path installs, tests, overfits and resumes a micro checkpoint, evaluates it, benchmarks it, and generates through the Aegis CLI while preserving structured metrics and traces.
 - **Later phases:** no SARN-Hybrid, MoE, graph workspace, working memory, SSM, retrieval, tools, or multimodal implementation has started.
 
-This progress note records evidence for the minimum user-facing Phase 1 acceptance contract. It does not override the remaining workstream exit criteria below.
+This progress note records the user-facing Phase 1 baseline contract. The toy evaluator and microbenchmark are baseline instrumentation; they do not complete the broader Phase 2 evaluation program or override later workstream exit criteria.
 
 ## Canonical Aegis-X Roadmap
 

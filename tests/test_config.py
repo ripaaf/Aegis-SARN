@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from aegis_sarn.config import ArtifactConfig, ConfigError, ModelConfig, RuntimeConfig
+from aegis_sarn.config import (
+    ArtifactConfig,
+    ConfigError,
+    DecodingConfig,
+    ModelConfig,
+    RuntimeConfig,
+)
 
 
 def test_model_config_round_trip_and_derived_head_dim() -> None:
@@ -22,3 +28,7 @@ def test_runtime_and_artifact_paths() -> None:
     assert runtime.max_prompt_tokens == 12
     assert artifact.checkpoint_path == Path('example/sarn-dense-smoke.pt')
 
+
+def test_decoding_config_rejects_unknown_strategy() -> None:
+    with pytest.raises(ConfigError, match='strategy'):
+        DecodingConfig(strategy='beam')  # type: ignore[arg-type]

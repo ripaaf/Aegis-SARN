@@ -27,9 +27,13 @@ Aegis-SARN/
         training.py
         checkpoint.py
       eval/
+        harness.py
+        benchmark.py
       utils/
+        metadata.py
   tests/
   artifacts/          # ignored local generated checkpoints/manifests
+  runs/               # ignored local evaluation/run/benchmark manifests
 ```
 
 Future `configs/`, `research/`, and `reports/` trees are created only with their first real artifact; empty architecture theater remains prohibited.
@@ -87,7 +91,7 @@ Local `artifacts/`, caches, datasets, checkpoints, secrets, generated indexes, a
 
 ## 6. Initial Implementation Status
 
-The Phase 1 minimum slice now contains:
+The Phase 1 dense slice and hardening now contain:
 
 ```text
 pyproject.toml
@@ -99,7 +103,7 @@ src/aegis_sarn/utils/
 tests/
 ```
 
-This is intentionally a vertical slice rather than scaffolding future subsystems. New directories require implemented behavior and tests.
+The implemented slice includes optional KV-cached and sampled generation, toy evaluation, CPU benchmarking, and common run metadata. This is intentionally a vertical slice rather than scaffolding future subsystems. New directories require implemented behavior and tests.
 
 ## 7. Ownership and Review
 

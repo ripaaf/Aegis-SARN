@@ -4,10 +4,10 @@ This document defines the full conceptual contracts. Phase 1 implements a delibe
 
 ## Phase 1 Implemented Subset
 
-- `RunRequest`: text prompt, request/session IDs, prompt/output token budgets, wall-time budget, seed, and schema version.
-- `RunResult`: explicit status, text content, backend identity, usage, limitations, assurance placeholder, and ordered trace events.
+- `RunRequest`: text prompt, request/session IDs, prompt/output token budgets, wall-time budget, seed, decoding strategy, temperature/top-k/top-p controls, optional stop token, opt-in KV cache, and schema version.
+- `RunResult`: explicit status, text content, backend identity, usage, limitations, assurance placeholder, ordered trace events, and an optional manifest path.
 - `TraceEvent`: run ID, monotonic sequence, event/component identity, UTC timestamp, typed JSON payload, and schema version.
-- configuration dataclasses: model, training, runtime, seed, artifact, and run manifest.
+- configuration dataclasses: model, training, runtime, decoding, seed, artifact, and run manifest.
 
 Retrieval capabilities, multipart content envelopes, tools, verifier findings, persistent memory, and full model manifests remain future contracts. The Phase 1 implementation must not imply those capabilities exist.
 

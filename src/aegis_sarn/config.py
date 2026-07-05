@@ -107,6 +107,37 @@ class RuntimeConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class DecodingConfig:
+    strategy: Literal['greedy', 'sample'] = 'greedy'
+    max_new_tokens: int = 16
+    temperature: float = 1.0
+    top_k: int | None = None
+    top_p: float | None = None
+    stop_token_id: int | None = None
+    use_kv_cache: bool = False
+    seed: int = 7
+
+    def __post_init__(self) -> None:
+        if self.strategy not in ('greedy', 'sample'):
+            raise ConfigError('strategy must be greedy or sample')
+        if self.max_new_tokens < 0:
+            raise ConfigError('max_new_tokens cannot be negative')
+        if self.temperature <= 0:
+            raise ConfigError('temperature must be positive')
+        if self.top_k is not None and self.top_k <= 0:
+            raise ConfigError('top_k must be positive or None')
+        if self.top_p is not None and not 0.0 < self.top_p <= 1.0:
+            raise ConfigError('top_p must be in (0, 1] or None')
+        if self.stop_token_id is not None and self.stop_token_id < 0:
+            raise ConfigError('stop_token_id cannot be negative')
+        if self.seed < 0:
+            raise ConfigError('seed cannot be negative')
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
 class SeedConfig:
     seed: int = 7
     deterministic_algorithms: bool = True
@@ -154,8 +185,17 @@ class RunManifest:
     model_config: dict[str, Any]
     training_config: dict[str, Any]
     seed_config: dict[str, Any]
+    runtime_config: dict[str, Any] = field(default_factory=dict)
+    decoding_config: dict[str, Any] = field(default_factory=dict)
+    package_version: str = 'unknown'
+    git_commit: str = 'unavailable'
+    device_info: dict[str, Any] = field(default_factory=dict)
+    command: str = ''
+    command_args: dict[str, Any] = field(default_factory=dict)
     artifacts: dict[str, str] = field(default_factory=dict)
-    metrics: dict[str, float | int | str] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
+    trace_events: list[dict[str, Any]] = field(default_factory=list)
+    config_hash: str = ''
     schema_version: str = 'aegis.run_manifest/v1'
 
     def to_dict(self) -> dict[str, Any]:
