@@ -11,3 +11,4 @@ artifacts/
 runs/
 *.pt
 *.pth
+terminal-logs
