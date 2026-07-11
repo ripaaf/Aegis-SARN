@@ -18,10 +18,22 @@ def sha256_file(path: Path) -> str:
     return f'sha256:{digest.hexdigest()}'
 
 
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    '''Atomically write deterministic UTF-8 JSON.'''
+def _write_json_file(path: Path, payload: dict[str, Any]) -> None:
+    with path.open('w', encoding='utf-8', newline='\n') as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write('\n')
+        handle.flush()
+        os.fsync(handle.fileno())
 
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    '''Write deterministic UTF-8 JSON with atomic replace when supported.'''
+
+    path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if os.name == 'nt':
+        _write_json_file(path, payload)
+        return
     descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent, prefix=f'.{path.name}.', suffix='.tmp'
     )
@@ -32,7 +44,13 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
             handle.write('\n')
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, path)
+        try:
+            os.replace(temporary, path)
+        except PermissionError:
+            _write_json_file(path, payload)
     finally:
         if temporary.exists():
-            temporary.unlink()
+            try:
+                temporary.unlink()
+            except PermissionError:
+                pass

@@ -1,12 +1,14 @@
-'''Command-line entry points for the Phase 1 smoke and runtime paths.'''
+'''Command-line entry points for the SARN-Dense baseline and runtime paths.'''
 
 from __future__ import annotations
 
 import argparse
 import json
+import statistics
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
+from uuid import uuid4
 
 from aegis_sarn.aegis import FakeBackend, RunRequest, SARNBackend, SessionController
 from aegis_sarn.config import (
@@ -18,6 +20,8 @@ from aegis_sarn.config import (
     TrainingConfig,
 )
 from aegis_sarn.eval import benchmark_generation, evaluate_toy
+from aegis_sarn.registry import record_manifest, registry_entries
+from aegis_sarn.reporting import write_baseline_report
 from aegis_sarn.sarn.checkpoint import load_checkpoint
 from aegis_sarn.sarn.model import SARNDense
 from aegis_sarn.sarn.training import run_smoke_training
@@ -44,7 +48,17 @@ def _add_decoding_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--seed', type=int, default=7)
 
 
-def _decoding_config(arguments: argparse.Namespace) -> DecodingConfig:
+def _add_registry_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        '--registry',
+        type=Path,
+        help='run registry path; defaults to <output-dir>/registry.json',
+    )
+
+
+def _decoding_config(
+    arguments: argparse.Namespace, seed_override: int | None = None
+) -> DecodingConfig:
     return DecodingConfig(
         strategy=arguments.strategy,
         max_new_tokens=arguments.max_new_tokens,
@@ -53,7 +67,7 @@ def _decoding_config(arguments: argparse.Namespace) -> DecodingConfig:
         top_p=arguments.top_p,
         stop_token_id=arguments.stop_token_id,
         use_kv_cache=arguments.use_kv_cache,
-        seed=arguments.seed,
+        seed=arguments.seed if seed_override is None else seed_override,
     )
 
 
@@ -64,6 +78,24 @@ def _safe_args(arguments: argparse.Namespace) -> dict[str, object]:
         values['prompt'] = '<redacted>'
         values['prompt_length_chars'] = len(prompt)
     return values
+
+
+def _registry_path(arguments: argparse.Namespace) -> Path:
+    registry = getattr(arguments, 'registry', None)
+    if registry is not None:
+        return registry
+    return getattr(arguments, 'output_dir', Path('runs')) / 'registry.json'
+
+
+def _report_registry_path(arguments: argparse.Namespace) -> Path:
+    registry = getattr(arguments, 'registry', None)
+    if registry is not None:
+        return registry
+    return arguments.run_dir / 'runs' / 'registry.json'
+
+
+def _record_manifest(arguments: argparse.Namespace, manifest_path: Path) -> None:
+    record_manifest(_registry_path(arguments), manifest_path)
 
 
 def _load_model(
@@ -95,6 +127,7 @@ def _parser() -> argparse.ArgumentParser:
     run_parser.add_argument('--device', default='cpu')
     run_parser.add_argument('--output-dir', type=Path, default=Path('runs'))
     _add_decoding_arguments(run_parser)
+    _add_registry_argument(run_parser)
 
     train_parser = subparsers.add_parser(
         'train-smoke', help='overfit a generated batch and write a checkpoint'
@@ -109,6 +142,7 @@ def _parser() -> argparse.ArgumentParser:
     train_parser.add_argument('--learning-rate', type=float, default=5e-3)
     train_parser.add_argument('--seed', type=int, default=7)
     train_parser.add_argument('--device', default='cpu')
+    _add_registry_argument(train_parser)
 
     eval_parser = subparsers.add_parser('eval-toy', help='evaluate toy metrics')
     eval_parser.add_argument('--checkpoint', type=Path)
@@ -118,6 +152,21 @@ def _parser() -> argparse.ArgumentParser:
     eval_parser.add_argument('--device', default='cpu')
     eval_parser.add_argument('--json', action='store_true')
     _add_decoding_arguments(eval_parser)
+    _add_registry_argument(eval_parser)
+
+    multiseed_parser = subparsers.add_parser(
+        'eval-multiseed', help='run toy evaluation across multiple seeds'
+    )
+    multiseed_parser.add_argument('--checkpoint', type=Path)
+    multiseed_parser.add_argument('--output-dir', type=Path, default=Path('runs'))
+    multiseed_parser.add_argument('--batch-size', type=int, default=8)
+    multiseed_parser.add_argument('--sequence-length', type=int, default=24)
+    multiseed_parser.add_argument('--device', default='cpu')
+    multiseed_parser.add_argument('--seeds', nargs='*', type=int)
+    multiseed_parser.add_argument('--num-seeds', type=int, default=3)
+    multiseed_parser.add_argument('--json', action='store_true')
+    _add_decoding_arguments(multiseed_parser)
+    _add_registry_argument(multiseed_parser)
 
     bench_parser = subparsers.add_parser('bench', help='benchmark dense generation')
     bench_parser.add_argument('--checkpoint', type=Path)
@@ -127,6 +176,35 @@ def _parser() -> argparse.ArgumentParser:
     bench_parser.add_argument('--device', default='cpu')
     bench_parser.add_argument('--json', action='store_true')
     _add_decoding_arguments(bench_parser)
+    _add_registry_argument(bench_parser)
+
+    list_parser = subparsers.add_parser('list-runs', help='list registered runs')
+    list_parser.add_argument('--registry', type=Path, default=Path('runs/registry.json'))
+    list_parser.add_argument('--json', action='store_true')
+
+    report_parser = subparsers.add_parser(
+        'report-baseline', help='generate the SARN-Dense Phase 2 baseline report'
+    )
+    report_parser.add_argument('--run-dir', type=Path, default=Path('artifacts/phase2-repro'))
+    report_parser.add_argument('--output-dir', type=Path, default=Path('artifacts/reports'))
+    report_parser.add_argument('--registry', type=Path)
+    report_parser.add_argument('--json', action='store_true')
+
+    reproduce_parser = subparsers.add_parser(
+        'reproduce-phase2', help='run the small CPU Phase 2 reproduction pipeline'
+    )
+    reproduce_parser.add_argument('--output-dir', type=Path, default=Path('artifacts/phase2-repro'))
+    reproduce_parser.add_argument('--device', default='cpu')
+    reproduce_parser.add_argument('--seed', type=int, default=123)
+    reproduce_parser.add_argument('--train-steps', type=int, default=20)
+    reproduce_parser.add_argument('--batch-size', type=int, default=4)
+    reproduce_parser.add_argument('--sequence-length', type=int, default=16)
+    reproduce_parser.add_argument('--d-model', type=int, default=32)
+    reproduce_parser.add_argument('--layers', type=int, default=1)
+    reproduce_parser.add_argument('--heads', type=int, default=4)
+    reproduce_parser.add_argument('--learning-rate', type=float, default=8e-3)
+    reproduce_parser.add_argument('--max-new-tokens', type=int, default=4)
+    reproduce_parser.add_argument('--bench-repeats', type=int, default=1)
     return parser
 
 
@@ -189,7 +267,9 @@ def _run_command(arguments: argparse.Namespace) -> int:
     )
     arguments.output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = arguments.output_dir / f'run-{result.run_id}.json'
-    write_json(manifest_path, manifest.to_dict())
+    manifest_payload = manifest.to_dict()
+    write_json(manifest_path, manifest_payload)
+    _record_manifest(arguments, manifest_path)
     result.manifest_path = str(manifest_path)
     print(json.dumps(result.to_dict(), indent=2, sort_keys=True, ensure_ascii=False))
     return 0 if result.status == 'completed' else 1
@@ -218,6 +298,7 @@ def _train_command(arguments: argparse.Namespace) -> int:
         artifact_config=ArtifactConfig(output_dir=arguments.output_dir),
         command_args=_safe_args(arguments),
     )
+    _record_manifest(arguments, result.manifest_path)
     print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
     return 0 if result.final_loss < result.initial_loss else 2
 
@@ -237,6 +318,7 @@ def _eval_command(arguments: argparse.Namespace) -> int:
         command_args=_safe_args(arguments),
         artifacts=artifacts,
     )
+    _record_manifest(arguments, result.manifest_path)
     if arguments.json:
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True, ensure_ascii=False))
     else:
@@ -248,6 +330,129 @@ def _eval_command(arguments: argparse.Namespace) -> int:
         print('  duration ms: {:.3f}'.format(float(metrics['runtime_duration_ms'])))
         print('  sample: {!r}'.format(metrics['generation_sample']))
         print('  manifest: {}'.format(result.manifest_path))
+    return 0
+
+
+def _mean_and_std(values: list[float]) -> tuple[float, float]:
+    return sum(values) / len(values), statistics.pstdev(values) if len(values) > 1 else 0.0
+
+
+def _multiseed_values(arguments: argparse.Namespace) -> list[int]:
+    if arguments.seeds:
+        seeds = arguments.seeds
+    else:
+        if arguments.num_seeds <= 0:
+            raise ValueError('num-seeds must be positive')
+        seeds = [arguments.seed + offset for offset in range(arguments.num_seeds)]
+    if any(seed < 0 for seed in seeds):
+        raise ValueError('seeds must be non-negative')
+    return seeds
+
+
+def _eval_multiseed_command(arguments: argparse.Namespace) -> int:
+    seeds = _multiseed_values(arguments)
+    individual_results: list[dict[str, object]] = []
+    validation_losses: list[float] = []
+    token_accuracies: list[float] = []
+    perplexities: list[float] = []
+    aggregate_artifacts: dict[str, str] = {}
+    model_config: dict[str, object] = {}
+
+    for seed in seeds:
+        model, artifacts = _load_model(arguments.checkpoint, arguments.device, seed)
+        aggregate_artifacts = aggregate_artifacts or artifacts
+        model_config = model.config.to_dict()
+        command_args = _safe_args(arguments)
+        command_args['parent_command'] = 'eval-multiseed'
+        command_args['seed'] = seed
+        result = evaluate_toy(
+            model=model,
+            output_dir=arguments.output_dir,
+            seed_config=SeedConfig(seed=seed),
+            decoding_config=_decoding_config(arguments, seed_override=seed),
+            device=arguments.device,
+            batch_size=arguments.batch_size,
+            sequence_length=arguments.sequence_length,
+            command_args=command_args,
+            artifacts=artifacts,
+        )
+        _record_manifest(arguments, result.manifest_path)
+        metrics = result.metrics
+        validation_loss = float(metrics['validation_loss'])
+        token_accuracy = float(metrics['token_accuracy'])
+        perplexity = float(metrics['perplexity'])
+        validation_losses.append(validation_loss)
+        token_accuracies.append(token_accuracy)
+        perplexities.append(perplexity)
+        individual_results.append(
+            {
+                'seed': seed,
+                'run_id': result.run_id,
+                'manifest_path': str(result.manifest_path),
+                'validation_loss': validation_loss,
+                'token_accuracy': token_accuracy,
+                'perplexity': perplexity,
+            }
+        )
+
+    mean_loss, std_loss = _mean_and_std(validation_losses)
+    mean_accuracy, std_accuracy = _mean_and_std(token_accuracies)
+    mean_perplexity, std_perplexity = _mean_and_std(perplexities)
+    metrics: dict[str, object] = {
+        'mean_validation_loss': mean_loss,
+        'std_validation_loss': std_loss,
+        'mean_token_accuracy': mean_accuracy,
+        'std_token_accuracy': std_accuracy,
+        'mean_perplexity': mean_perplexity,
+        'std_perplexity': std_perplexity,
+        'individual_seed_results': individual_results,
+        'num_seeds': len(seeds),
+        'seeds': seeds,
+    }
+    run_id = str(uuid4())
+    created_at = datetime.now(timezone.utc).isoformat()
+    manifest = RunManifest(
+        run_id=run_id,
+        run_name='eval-multiseed',
+        created_at=created_at,
+        status='completed',
+        model_config=model_config,
+        training_config={},
+        seed_config={'seed': arguments.seed, 'seeds': seeds},
+        runtime_config={'device': arguments.device},
+        decoding_config=_decoding_config(arguments).to_dict(),
+        package_version=package_version(),
+        git_commit=git_commit(),
+        device_info=device_info(arguments.device),
+        command='eval-multiseed',
+        command_args=_safe_args(arguments),
+        artifacts=aggregate_artifacts,
+        metrics=metrics,
+        trace_events=[],
+        config_hash=config_hash(
+            {
+                'model': model_config,
+                'decoding': _decoding_config(arguments).to_dict(),
+                'seeds': seeds,
+                'device': arguments.device,
+            }
+        ),
+    )
+    arguments.output_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = arguments.output_dir / f'eval-multiseed-{run_id}.json'
+    write_json(manifest_path, manifest.to_dict())
+    _record_manifest(arguments, manifest_path)
+    payload = {'run_id': run_id, 'manifest_path': str(manifest_path), 'metrics': metrics}
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('Multi-seed toy evaluation completed')
+        print('  seeds: {}'.format(', '.join(str(seed) for seed in seeds)))
+        print('  mean validation loss: {:.6f}'.format(mean_loss))
+        print('  std validation loss: {:.6f}'.format(std_loss))
+        print('  mean token accuracy: {:.4f}'.format(mean_accuracy))
+        print('  mean perplexity: {:.6f}'.format(mean_perplexity))
+        print('  manifest: {}'.format(manifest_path))
     return 0
 
 
@@ -266,6 +471,7 @@ def _bench_command(arguments: argparse.Namespace) -> int:
         command_args=_safe_args(arguments),
         artifacts=artifacts,
     )
+    _record_manifest(arguments, result.manifest_path)
     if arguments.json:
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
     else:
@@ -283,6 +489,144 @@ def _bench_command(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _list_runs_command(arguments: argparse.Namespace) -> int:
+    entries = registry_entries(arguments.registry)
+    if arguments.json:
+        print(
+            json.dumps(
+                {'registry_path': str(arguments.registry), 'runs': entries},
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+    if not entries:
+        print('No runs registered at {}'.format(arguments.registry))
+        return 0
+    print('RUN_ID                               COMMAND          STATUS     SEED   DEVICE  TIMESTAMP')
+    for entry in entries:
+        print(
+            '{:<36} {:<16} {:<10} {:<6} {:<7} {}'.format(
+                entry['run_id'],
+                entry.get('command_name') or '',
+                entry.get('status') or '',
+                '' if entry.get('seed') is None else entry.get('seed'),
+                entry.get('device') or '',
+                entry.get('timestamp') or '',
+            )
+        )
+    return 0
+
+
+def _report_command(arguments: argparse.Namespace) -> int:
+    result = write_baseline_report(
+        run_dir=arguments.run_dir,
+        output_dir=arguments.output_dir,
+        registry_path=_report_registry_path(arguments),
+    )
+    payload = result.to_dict()
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense baseline report generated')
+        print('  markdown: {}'.format(result.markdown_path))
+        print('  json: {}'.format(result.json_path))
+    return 0
+
+
+def _reproduce_command_args(arguments: argparse.Namespace, stage: str) -> dict[str, object]:
+    values = _safe_args(arguments)
+    values['stage'] = stage
+    return values
+
+
+def _reproduce_phase2_command(arguments: argparse.Namespace) -> int:
+    output_dir = arguments.output_dir
+    registry_path = output_dir / 'runs' / 'registry.json'
+    train_dir = output_dir / 'train'
+    eval_dir = output_dir / 'eval'
+    bench_dir = output_dir / 'bench'
+    report_dir = output_dir / 'reports'
+    model_config = ModelConfig(
+        vocab_size=256,
+        max_seq_len=max(64, arguments.sequence_length + arguments.max_new_tokens),
+        d_model=arguments.d_model,
+        n_layers=arguments.layers,
+        n_heads=arguments.heads,
+        ffn_hidden_dim=arguments.d_model * 3,
+    )
+    training_config = TrainingConfig(
+        learning_rate=arguments.learning_rate,
+        batch_size=arguments.batch_size,
+        sequence_length=arguments.sequence_length,
+        max_steps=arguments.train_steps,
+        device=arguments.device,
+    )
+    seed_config = SeedConfig(seed=arguments.seed)
+    train_result = run_smoke_training(
+        model_config=model_config,
+        training_config=training_config,
+        seed_config=seed_config,
+        artifact_config=ArtifactConfig(output_dir=train_dir),
+        command_args=_reproduce_command_args(arguments, 'train-smoke'),
+    )
+    record_manifest(registry_path, train_result.manifest_path)
+
+    decoding_config = DecodingConfig(
+        strategy='greedy',
+        max_new_tokens=arguments.max_new_tokens,
+        use_kv_cache=True,
+        seed=arguments.seed,
+    )
+    model, artifacts = _load_model(train_result.checkpoint_path, arguments.device, arguments.seed)
+    eval_result = evaluate_toy(
+        model=model,
+        output_dir=eval_dir,
+        seed_config=seed_config,
+        decoding_config=decoding_config,
+        device=arguments.device,
+        batch_size=arguments.batch_size,
+        sequence_length=arguments.sequence_length,
+        command_args=_reproduce_command_args(arguments, 'eval-toy'),
+        artifacts=artifacts,
+    )
+    record_manifest(registry_path, eval_result.manifest_path)
+
+    model, artifacts = _load_model(train_result.checkpoint_path, arguments.device, arguments.seed)
+    bench_result = benchmark_generation(
+        model=model,
+        output_dir=bench_dir,
+        seed_config=seed_config,
+        decoding_config=decoding_config,
+        device=arguments.device,
+        prompt_length=min(arguments.sequence_length, model_config.max_seq_len),
+        repeats=arguments.bench_repeats,
+        command_args=_reproduce_command_args(arguments, 'bench'),
+        artifacts=artifacts,
+    )
+    record_manifest(registry_path, bench_result.manifest_path)
+
+    report_result = write_baseline_report(
+        run_dir=output_dir,
+        output_dir=report_dir,
+        registry_path=registry_path,
+    )
+    summary = {
+        'schema_version': 'aegis.phase2_reproduce/v1',
+        'status': 'completed',
+        'checkpoint_path': str(train_result.checkpoint_path),
+        'train_manifest_path': str(train_result.manifest_path),
+        'eval_manifest_path': str(eval_result.manifest_path),
+        'bench_manifest_path': str(bench_result.manifest_path),
+        'report_markdown_path': str(report_result.markdown_path),
+        'report_json_path': str(report_result.json_path),
+        'registry_path': str(registry_path),
+    }
+    write_json(output_dir / 'reproduce-summary.json', summary)
+    print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0 if train_result.final_loss < train_result.initial_loss else 2
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
     if arguments.command == 'run':
@@ -291,6 +635,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _train_command(arguments)
     if arguments.command == 'eval-toy':
         return _eval_command(arguments)
+    if arguments.command == 'eval-multiseed':
+        return _eval_multiseed_command(arguments)
     if arguments.command == 'bench':
         return _bench_command(arguments)
+    if arguments.command == 'list-runs':
+        return _list_runs_command(arguments)
+    if arguments.command == 'report-baseline':
+        return _report_command(arguments)
+    if arguments.command == 'reproduce-phase2':
+        return _reproduce_phase2_command(arguments)
     raise AssertionError(f'unhandled command: {arguments.command}')

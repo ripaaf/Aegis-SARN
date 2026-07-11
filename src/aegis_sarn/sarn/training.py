@@ -219,6 +219,11 @@ def run_smoke_training(
             'final_loss': all_losses[-1],
             'evaluation_loss': evaluation_loss,
             'completed_step': completed_step,
+            'dataset_name': 'toy/repeated_pattern',
+            'task': batch.task,
+            'split': 'train-smoke',
+            'examples': training_config.batch_size,
+            'sequence_length': training_config.sequence_length,
         },
         trace_events=[event.to_dict() for event in trace.events],
         config_hash=config_hash(configuration_payload),
@@ -234,3 +239,4 @@ def run_smoke_training(
         generated_ids=generated[0].tolist(),
         completed_step=completed_step,
     )
+

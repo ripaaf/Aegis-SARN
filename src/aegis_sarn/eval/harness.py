@@ -98,6 +98,9 @@ def evaluate_toy(
             'generation_sample': sample,
             'generation_token_ids': new_ids,
             'runtime_duration_ms': duration_ms,
+            'dataset_name': 'toy/repeated_pattern',
+            'task': batch.task,
+            'split': 'validation',
             'examples': batch_size,
             'sequence_length': sequence_length,
         }
@@ -147,3 +150,4 @@ def evaluate_toy(
     manifest_path = output_dir / f'eval-{run_id}.json'
     write_json(manifest_path, manifest.to_dict())
     return HarnessResult(metrics=metrics, manifest_path=manifest_path, run_id=run_id)
+

@@ -6,15 +6,15 @@ This roadmap is ordered by dependency and evidence, not by how advanced a techni
 
 No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
 
-## Implementation Progress — 2026-07-05
+## Implementation Progress - 2026-07-11
 
 - **Phase 0 specification:** complete for the initial implementation boundary.
-- **Phase 1 dense baseline:** implemented with CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, and CLI output.
-- **Phase 1 hardening:** implemented with opt-in KV caching and cached/full-prefix parity, greedy/temperature/top-k/top-p decoding, stop tokens, deterministic sampling, toy loss/perplexity/accuracy evaluation, CPU generation benchmarking, and reproducibility manifests for train/eval/run/bench.
-- **Acceptance workflow:** the documented clean-clone path installs, tests, overfits and resumes a micro checkpoint, evaluates it, benchmarks it, and generates through the Aegis CLI while preserving structured metrics and traces.
-- **Later phases:** no SARN-Hybrid, MoE, graph workspace, working memory, SSM, retrieval, tools, or multimodal implementation has started.
+- **Phase 1 dense baseline:** implemented and hardened with CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, CLI output, opt-in KV caching, sampled decoding, toy evaluation, CPU benchmarking, and reproducibility manifests.
+- **Phase 2 reproducible baseline lab:** implemented for the SARN-Dense control baseline with a local run registry, `list-runs`, baseline Markdown/JSON report generation, `eval-multiseed`, `reproduce-phase2`, dataset/model cards, PowerShell-friendly commands, and focused tests.
+- **Acceptance workflow:** the documented CPU path installs, tests, trains a micro checkpoint, evaluates it, benchmarks it, records registry entries, and generates a baseline report while preserving structured metrics and traces.
+- **Later phases:** no SARN-Hybrid, MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, advanced safety system, or multimodal implementation has started.
 
-This progress note records the user-facing Phase 1 baseline contract. The toy evaluator and microbenchmark are baseline instrumentation; they do not complete the broader Phase 2 evaluation program or override later workstream exit criteria.
+This progress note records the user-facing Phase 1/2 baseline contract. The toy evaluator, multi-seed aggregation, registry, and microbenchmark are baseline instrumentation; they do not complete broader future evaluation suites or override later workstream exit criteria.
 
 ## Canonical Aegis-X Roadmap
 

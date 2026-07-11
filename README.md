@@ -15,9 +15,11 @@ The ambition is architectural, not rhetorical. The project does not claim that S
 
 ## Status
 
-**Phase 1 — dense baseline and hardening implemented.** The repository contains a CPU-first SARN-Dense micro model, deterministic generated tasks, smoke training/checkpoint resume, optional KV-cached generation, greedy and sampled decoding, toy evaluation and CPU benchmarking, and the minimal Aegis request/backend/manifest/trace/CLI spine. The full-prefix path remains the default; callers opt into the KV cache. SARN-Hybrid, retrieval, tools, working memory, SSM, MoE, and multimodal modules remain unimplemented by design.
+**Phase 1 - dense baseline and hardening implemented.** The repository contains a CPU-first SARN-Dense micro model, deterministic generated tasks, smoke training/checkpoint resume, optional KV-cached generation, greedy and sampled decoding, toy evaluation and CPU benchmarking, and the minimal Aegis request/backend/manifest/trace/CLI spine.
 
-## Phase 1 Quickstart
+**Phase 2 - reproducible baseline evaluation lab implemented.** The repository now adds a local run registry, multi-seed toy evaluation, baseline report generation, dataset and model cards, and a CPU reproduction pipeline. SARN-Dense remains the only implemented model path and the control baseline. SARN-Hybrid, retrieval, tools, working memory, SSM, MoE, graph workspace, and multimodal modules remain unimplemented by design.
+
+## Phase 1/2 Quickstart
 
 Python 3.11+ and PyTorch 2.2+ are supported. No GPU is required.
 
@@ -30,6 +32,45 @@ Activate it with `.venv\Scripts\Activate.ps1` on PowerShell or `source .venv/bin
 ```bash
 python -m pip install -e '.[dev]'
 python -m pytest
+```
+
+### Windows PowerShell
+
+These examples are CPU-compatible and use PowerShell backtick continuation.
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m pytest
+
+aegis-sarn reproduce-phase2 `
+  --output-dir artifacts/phase2-repro `
+  --device cpu `
+  --seed 123
+
+aegis-sarn list-runs --registry artifacts/phase2-repro/runs/registry.json
+
+aegis-sarn report-baseline `
+  --run-dir artifacts/phase2-repro `
+  --output-dir artifacts/reports `
+  --registry artifacts/phase2-repro/runs/registry.json
+
+aegis-sarn run `
+  --checkpoint artifacts/phase1/sarn-dense-smoke.pt `
+  --prompt "aegis sarn " `
+  --max-new-tokens 8 `
+  --use-kv-cache `
+  --device cpu `
+  --output-dir runs
+```
+
+One-line PowerShell versions:
+
+```powershell
+aegis-sarn reproduce-phase2 --output-dir artifacts/phase2-repro --device cpu --seed 123
+aegis-sarn eval-multiseed --checkpoint artifacts/phase2-repro/train/sarn-dense-smoke.pt --output-dir artifacts/phase2-repro/eval --seeds 1 2 3 --device cpu --json
+aegis-sarn run --checkpoint artifacts/phase1/sarn-dense-smoke.pt --prompt "aegis sarn " --max-new-tokens 8 --use-kv-cache --device cpu --output-dir runs
 ```
 
 Run the deterministic CPU smoke trainer. It overfits a generated repeated-pattern batch, resumes the optimizer from its checkpoint, evaluates loss, generates tokens, and writes a JSON manifest:
@@ -67,7 +108,7 @@ Sampling is explicit and reproducible from a fixed seed:
 aegis-sarn run --checkpoint artifacts/phase1/sarn-dense-smoke.pt --prompt 'aegis sarn ' --strategy sample --temperature 0.8 --top-k 16 --top-p 0.9 --seed 7 --output-dir runs
 ```
 
-Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. The byte tokenizer and toy corpus validate the pipeline; this checkpoint is not a useful natural-language model. Generated artifacts are ignored by Git.
+Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phase 2 also records runs in a local registry and can generate Markdown/JSON baseline reports. The byte tokenizer and toy corpus validate the pipeline; this checkpoint is not a useful natural-language model. Generated artifacts are ignored by Git.
 
 ## Start Here
 

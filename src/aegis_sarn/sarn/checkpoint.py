@@ -1,4 +1,4 @@
-'''Atomic local checkpoints for trusted Phase 1 artifacts.'''
+'''Local checkpoints for trusted SARN-Dense artifacts.'''
 
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ def save_checkpoint(
 ) -> Path:
     if step < 0:
         raise ValueError('checkpoint step cannot be negative')
+    path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         'format_version': 'aegis.sarn_checkpoint/v1',
@@ -40,17 +41,28 @@ def save_checkpoint(
         'step': step,
         'training_config': None if training_config is None else training_config.to_dict(),
     }
+    if os.name == 'nt':
+        torch.save(payload, path)
+        return path
     descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent, prefix=f'.{path.name}.', suffix='.tmp'
     )
-    os.close(descriptor)
     temporary = Path(temporary_name)
     try:
-        torch.save(payload, temporary)
-        os.replace(temporary, path)
+        with os.fdopen(descriptor, 'wb') as handle:
+            torch.save(payload, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.replace(temporary, path)
+        except PermissionError:
+            torch.save(payload, path)
     finally:
         if temporary.exists():
-            temporary.unlink()
+            try:
+                temporary.unlink()
+            except PermissionError:
+                pass
     return path
 
 
