@@ -19,7 +19,8 @@ from aegis_sarn.config import (
     SeedConfig,
     TrainingConfig,
 )
-from aegis_sarn.eval import benchmark_generation, evaluate_toy
+from aegis_sarn.eval import benchmark_generation, evaluate_tasks, evaluate_toy
+from aegis_sarn.phase3 import check_gates, compare_baselines, run_baseline_sweep
 from aegis_sarn.registry import record_manifest, registry_entries
 from aegis_sarn.reporting import write_baseline_report
 from aegis_sarn.sarn.checkpoint import load_checkpoint
@@ -98,6 +99,26 @@ def _record_manifest(arguments: argparse.Namespace, manifest_path: Path) -> None
     record_manifest(_registry_path(arguments), manifest_path)
 
 
+def _latest_train_checkpoint(registry: Path | None) -> Path | None:
+    if registry is None or not registry.exists():
+        return None
+    candidates = [
+        entry
+        for entry in registry_entries(registry)
+        if entry.get('command_name') == 'train-smoke' and entry.get('checkpoint_path')
+    ]
+    if not candidates:
+        return None
+    return Path(str(candidates[-1]['checkpoint_path']))
+
+
+def _checkpoint_argument(arguments: argparse.Namespace) -> Path | None:
+    checkpoint = getattr(arguments, 'checkpoint', None)
+    if checkpoint is not None:
+        return checkpoint
+    return _latest_train_checkpoint(getattr(arguments, 'registry', None))
+
+
 def _load_model(
     checkpoint: Path | None, device: str, seed: int
 ) -> tuple[SARNDense, dict[str, str]]:
@@ -168,6 +189,19 @@ def _parser() -> argparse.ArgumentParser:
     _add_decoding_arguments(multiseed_parser)
     _add_registry_argument(multiseed_parser)
 
+    tasks_parser = subparsers.add_parser(
+        'eval-tasks', help='evaluate deterministic toy task suite'
+    )
+    tasks_parser.add_argument('--checkpoint', type=Path)
+    tasks_parser.add_argument('--output-dir', type=Path, default=Path('runs'))
+    tasks_parser.add_argument('--batch-size', type=int, default=4)
+    tasks_parser.add_argument('--sequence-length', type=int, default=16)
+    tasks_parser.add_argument('--tasks', nargs='*')
+    tasks_parser.add_argument('--device', default='cpu')
+    tasks_parser.add_argument('--json', action='store_true')
+    _add_decoding_arguments(tasks_parser)
+    _add_registry_argument(tasks_parser)
+
     bench_parser = subparsers.add_parser('bench', help='benchmark dense generation')
     bench_parser.add_argument('--checkpoint', type=Path)
     bench_parser.add_argument('--output-dir', type=Path, default=Path('runs'))
@@ -205,6 +239,34 @@ def _parser() -> argparse.ArgumentParser:
     reproduce_parser.add_argument('--learning-rate', type=float, default=8e-3)
     reproduce_parser.add_argument('--max-new-tokens', type=int, default=4)
     reproduce_parser.add_argument('--bench-repeats', type=int, default=1)
+
+    sweep_parser = subparsers.add_parser(
+        'sweep-baseline', help='train/evaluate/benchmark tiny SARN-Dense configs'
+    )
+    sweep_parser.add_argument('--output-dir', type=Path, default=Path('artifacts/phase3-sweep'))
+    sweep_parser.add_argument('--device', default='cpu')
+    sweep_parser.add_argument('--seed', type=int, default=123)
+    sweep_parser.add_argument('--train-steps', type=int)
+    sweep_parser.add_argument('--batch-size', type=int, default=2)
+    sweep_parser.add_argument('--max-new-tokens', type=int, default=2)
+    sweep_parser.add_argument('--bench-repeats', type=int, default=1)
+    sweep_parser.add_argument('--json', action='store_true')
+
+    compare_parser = subparsers.add_parser(
+        'compare-baselines', help='compare Phase 3 sweep outputs'
+    )
+    compare_parser.add_argument('--input', type=Path, default=Path('artifacts/phase3-sweep'))
+    compare_parser.add_argument('--output-dir', type=Path, default=Path('artifacts/reports'))
+    compare_parser.add_argument('--json', action='store_true')
+
+    gates_parser = subparsers.add_parser(
+        'check-gates', help='check basic experiment quality gates'
+    )
+    gates_parser.add_argument('--summary', type=Path, required=True)
+    gates_parser.add_argument('--max-eval-loss', type=float)
+    gates_parser.add_argument('--min-token-accuracy', type=float)
+    gates_parser.add_argument('--min-tokens-per-second', type=float)
+    gates_parser.add_argument('--json', action='store_true')
     return parser
 
 
@@ -215,7 +277,7 @@ def _run_command(arguments: argparse.Namespace) -> int:
         backend = FakeBackend()
     else:
         model, artifacts = _load_model(
-            arguments.checkpoint, arguments.device, arguments.seed
+            _checkpoint_argument(arguments), arguments.device, arguments.seed
         )
         backend = SARNBackend(model=model, device=arguments.device)
 
@@ -305,7 +367,7 @@ def _train_command(arguments: argparse.Namespace) -> int:
 
 def _eval_command(arguments: argparse.Namespace) -> int:
     model, artifacts = _load_model(
-        arguments.checkpoint, arguments.device, arguments.seed
+        _checkpoint_argument(arguments), arguments.device, arguments.seed
     )
     result = evaluate_toy(
         model=model,
@@ -359,7 +421,7 @@ def _eval_multiseed_command(arguments: argparse.Namespace) -> int:
     model_config: dict[str, object] = {}
 
     for seed in seeds:
-        model, artifacts = _load_model(arguments.checkpoint, arguments.device, seed)
+        model, artifacts = _load_model(_checkpoint_argument(arguments), arguments.device, seed)
         aggregate_artifacts = aggregate_artifacts or artifacts
         model_config = model.config.to_dict()
         command_args = _safe_args(arguments)
@@ -456,9 +518,42 @@ def _eval_multiseed_command(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _eval_tasks_command(arguments: argparse.Namespace) -> int:
+    model, artifacts = _load_model(
+        _checkpoint_argument(arguments), arguments.device, arguments.seed
+    )
+    task_kwargs: dict[str, object] = {}
+    if arguments.tasks:
+        task_kwargs['task_names'] = tuple(arguments.tasks)
+    result = evaluate_tasks(
+        model=model,
+        output_dir=arguments.output_dir,
+        seed_config=SeedConfig(seed=arguments.seed),
+        decoding_config=_decoding_config(arguments),
+        device=arguments.device,
+        batch_size=arguments.batch_size,
+        sequence_length=arguments.sequence_length,
+        command_args=_safe_args(arguments),
+        artifacts=artifacts,
+        **task_kwargs,
+    )
+    _record_manifest(arguments, result.manifest_path)
+    if arguments.json:
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        metrics = result.metrics
+        print('Toy task evaluation completed')
+        print('  tasks: {}'.format(metrics['task_count']))
+        print('  aggregate validation loss: {:.6f}'.format(float(metrics['aggregate_validation_loss'])))
+        print('  aggregate token accuracy: {:.4f}'.format(float(metrics['aggregate_token_accuracy'])))
+        print('  aggregate perplexity: {:.6f}'.format(float(metrics['aggregate_perplexity'])))
+        print('  manifest: {}'.format(result.manifest_path))
+    return 0
+
+
 def _bench_command(arguments: argparse.Namespace) -> int:
     model, artifacts = _load_model(
-        arguments.checkpoint, arguments.device, arguments.seed
+        _checkpoint_argument(arguments), arguments.device, arguments.seed
     )
     result = benchmark_generation(
         model=model,
@@ -627,6 +722,71 @@ def _reproduce_phase2_command(arguments: argparse.Namespace) -> int:
     return 0 if train_result.final_loss < train_result.initial_loss else 2
 
 
+def _sweep_baseline_command(arguments: argparse.Namespace) -> int:
+    summary = run_baseline_sweep(
+        output_dir=arguments.output_dir,
+        device=arguments.device,
+        seed=arguments.seed,
+        train_steps=arguments.train_steps,
+        batch_size=arguments.batch_size,
+        max_new_tokens=arguments.max_new_tokens,
+        bench_repeats=arguments.bench_repeats,
+    )
+    payload = {
+        'run_id': summary['run_id'],
+        'summary_json_path': summary['artifacts']['summary_json'],
+        'summary_markdown_path': summary['artifacts']['summary_markdown'],
+        'registry_path': summary['artifacts']['registry'],
+        'metrics': summary['metrics'],
+        'results': summary['results'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense baseline sweep completed')
+        print('  configs: {}'.format(summary['metrics']['config_count']))
+        print('  summary: {}'.format(summary['artifacts']['summary_json']))
+        print('  markdown: {}'.format(summary['artifacts']['summary_markdown']))
+        print('  registry: {}'.format(summary['artifacts']['registry']))
+    return 0
+
+
+def _compare_baselines_command(arguments: argparse.Namespace) -> int:
+    summary = compare_baselines(arguments.input, arguments.output_dir)
+    payload = {
+        'run_id': summary['run_id'],
+        'comparison_json_path': summary['artifacts']['comparison_json'],
+        'comparison_markdown_path': summary['artifacts']['comparison_markdown'],
+        'winners': summary['winners'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('Baseline comparison generated')
+        print('  markdown: {}'.format(summary['artifacts']['comparison_markdown']))
+        print('  json: {}'.format(summary['artifacts']['comparison_json']))
+        print('  balanced: {}'.format(summary['winners']['best_balanced_config']['config_name']))
+    return 0
+
+
+def _check_gates_command(arguments: argparse.Namespace) -> int:
+    result = check_gates(
+        summary_path=arguments.summary,
+        max_eval_loss=arguments.max_eval_loss,
+        min_token_accuracy=arguments.min_token_accuracy,
+        min_tokens_per_second=arguments.min_tokens_per_second,
+    )
+    if arguments.json:
+        print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        status = 'PASS' if result['passed'] else 'FAIL'
+        print('Experiment gates: {}'.format(status))
+        for check in result['checks']:
+            mark = 'PASS' if check['passed'] else 'FAIL'
+            print('  {} {} - {}'.format(mark, check['name'], check['detail']))
+    return 0 if result['passed'] else 1
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
     if arguments.command == 'run':
@@ -637,6 +797,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _eval_command(arguments)
     if arguments.command == 'eval-multiseed':
         return _eval_multiseed_command(arguments)
+    if arguments.command == 'eval-tasks':
+        return _eval_tasks_command(arguments)
     if arguments.command == 'bench':
         return _bench_command(arguments)
     if arguments.command == 'list-runs':
@@ -645,4 +807,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _report_command(arguments)
     if arguments.command == 'reproduce-phase2':
         return _reproduce_phase2_command(arguments)
+    if arguments.command == 'sweep-baseline':
+        return _sweep_baseline_command(arguments)
+    if arguments.command == 'compare-baselines':
+        return _compare_baselines_command(arguments)
+    if arguments.command == 'check-gates':
+        return _check_gates_command(arguments)
     raise AssertionError(f'unhandled command: {arguments.command}')

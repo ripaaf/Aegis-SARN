@@ -8,7 +8,7 @@ from typing import Any, Literal
 
 
 class ConfigError(ValueError):
-    '''Raised when a configuration violates a Phase 1 invariant.'''
+    '''Raised when a configuration violates a baseline invariant.'''
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,7 +48,7 @@ class ModelConfig:
             raise ConfigError('rope_base must be greater than 1')
         resolved_kv_heads = self.n_heads if self.n_kv_heads is None else self.n_kv_heads
         if resolved_kv_heads != self.n_heads:
-            raise ConfigError('Phase 1 supports MHA only; GQA is reserved for Phase 3')
+            raise ConfigError('SARN-Dense supports MHA only; GQA is future work')
 
     @property
     def head_dim(self) -> int:
@@ -199,4 +199,25 @@ class RunManifest:
     schema_version: str = 'aegis.run_manifest/v1'
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        payload['timestamp'] = self.created_at
+        payload['git_commit_hash'] = self.git_commit
+        payload['config'] = {
+            'model': self.model_config,
+            'training': self.training_config,
+            'runtime': self.runtime_config,
+            'decoding': self.decoding_config,
+            'command_args': self.command_args,
+        }
+        payload['seed'] = self.seed_config.get('seed')
+        payload['device'] = (
+            self.runtime_config.get('device')
+            or self.device_info.get('device')
+            or self.metrics.get('device')
+        )
+        payload['limitations'] = [
+            'SARN-Dense is the only implemented model path for this artifact.',
+            'Toy generated data is for reproducibility checks, not language capability claims.',
+            'SARN-Hybrid and advanced modules are not implemented in this run.',
+        ]
+        return payload

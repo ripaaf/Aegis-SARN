@@ -28,6 +28,14 @@ _SUMMARY_KEYS = (
     'std_token_accuracy',
     'mean_perplexity',
     'std_perplexity',
+    'config_count',
+    'completed_count',
+    'best_eval_loss',
+    'best_token_accuracy',
+    'best_tokens_per_second',
+    'aggregate_validation_loss',
+    'aggregate_token_accuracy',
+    'aggregate_perplexity',
 )
 
 
