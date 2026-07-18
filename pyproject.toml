@@ -5,7 +5,7 @@ build-backend = 'setuptools.build_meta'
 [project]
 name = 'aegis-sarn'
 version = '0.1.0'
-description = 'Phase 1 SARN-Dense baseline and Aegis runtime spine'
+description = 'Phase 1/2 SARN-Dense baseline lab and Aegis runtime spine'
 readme = 'README.md'
 requires-python = '>=3.11'
 license = {file = 'LICENSE'}

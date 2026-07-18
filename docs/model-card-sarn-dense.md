@@ -9,6 +9,8 @@
 
 SARN-Dense is a decoder-only Transformer used to validate the training, checkpointing, evaluation, generation, benchmarking, registry, and reporting stack. It is the control model for future SARN-Hybrid comparisons, not a claim that hybrid mechanisms are implemented.
 
+It is a baseline/control, not a useful natural-language model.
+
 ## Architecture
 
 - Token embedding with optional tied language-model head

@@ -26,6 +26,8 @@ This is the authoritative navigation page. Documents are split by responsibility
 ## Building and Training
 
 - [Data](data.md) — dataset governance, mixtures, processing, and contamination controls
+- [Phase 2 toy dataset cards](datasets.md) — generated-fixture provenance, scope, and limitations
+- [SARN-Dense model card](model-card-sarn-dense.md) — baseline/control capabilities and limitations
 - [Training](training.md) — stages, objectives, checkpoints, optimizer studies, and reproducibility
 - [Development workflow](development.md) — implementation standards, testing, experiments, and contribution flow
 - [Roadmap](roadmap.md) — ordered milestones, deliverables, and exit gates
@@ -46,4 +48,4 @@ This is the authoritative navigation page. Documents are split by responsibility
 - **Accepted**: passed its stated evidence gate.
 - **Rejected**: tested and not adopted; results remain documented.
 
-Phase 0 specification is complete and the minimum Phase 1 SARN-Dense/Aegis spine is implemented. Nearly every enhancement beyond the dense baseline remains proposed rather than accepted.
+Phase 1 SARN-Dense and its hardening are implemented, and the Phase 2 reproducible baseline lab is implemented and verified on CPU. Phase 3 baseline scaling/quality gates is next and planned. SARN-Hybrid and later mechanisms remain proposed rather than accepted.

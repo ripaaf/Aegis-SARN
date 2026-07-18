@@ -255,7 +255,9 @@ def test_reproduce_phase2_runs_end_to_end(
     commands = {entry['command_name'] for entry in registry_payload['runs'].values()}
 
     assert exit_code == 0
-    assert Path(summary['checkpoint_path']).exists()
+    checkpoint_path = Path(summary['checkpoint_path'])
+    assert checkpoint_path == tmp_path / 'train' / 'sarn-dense-smoke.pt'
+    assert checkpoint_path.exists()
     assert Path(summary['report_markdown_path']).exists()
     assert Path(summary['report_json_path']).exists()
     assert {'train-smoke', 'eval-toy', 'bench', 'report-baseline'}.issubset(commands)
@@ -281,5 +283,10 @@ def test_windows_powershell_readme_examples_do_not_use_linux_continuation() -> N
     end = readme.index('Run the deterministic CPU smoke trainer', start)
     section = readme[start:end]
 
-    assert '`' in section
     assert not re.search(r'\\[ \t]*\r?\n', section)
+    assert 'reproduce-phase2 --output-dir artifacts/phase2-check' in section
+    assert 'list-runs --registry artifacts/phase2-check/runs/registry.json' in section
+    assert 'report-baseline --help' in section
+    assert '--checkpoint artifacts/phase2-check/train/sarn-dense-smoke.pt' in section
+    assert '--num-seeds 3 --json' in section
+    assert 'sweep-baseline' not in section

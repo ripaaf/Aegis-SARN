@@ -2,20 +2,20 @@
 
 ## 1. Roadmap Rules
 
-This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–2 build the SARN-Dense control and evaluation laboratory. Phases 3–8 construct and test the SARN-Hybrid model mechanisms; Phases 9–15 add governed system capabilities; Phases 16–17 are integration gates. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
+This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–3 build and qualify the SARN-Dense control and evaluation laboratory. Phases 4–9 construct and test proposed SARN-Hybrid mechanisms; Phases 10–16 add governed system capabilities; Phases 17–18 are integration gates. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
 
 No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
 
-## Implementation Progress - 2026-07-11
+## Implementation Progress - 2026-07-19
 
 - **Phase 0 specification:** complete for the initial implementation boundary.
 - **Phase 1 dense baseline:** implemented and hardened with CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, CLI output, opt-in KV caching, sampled decoding, toy evaluation, CPU benchmarking, and reproducibility manifests.
 - **Phase 2 reproducible baseline lab:** implemented for the SARN-Dense control baseline with a local run registry, `list-runs`, baseline Markdown/JSON report generation, `eval-multiseed`, `reproduce-phase2`, dataset/model cards, PowerShell-friendly commands, and focused tests.
-- **Phase 3 baseline quality/scaling harness:** implemented as baseline/evaluation work with `sweep-baseline`, `compare-baselines`, `check-gates`, `eval-tasks`, richer deterministic toy tasks, artifact policy documentation, and common manifest aliases for gate checks.
-- **Acceptance workflow:** the documented CPU path installs, tests, trains micro checkpoints, evaluates toy tasks, benchmarks generation, records registry entries, compares tiny dense configs, checks quality gates, and generates reports while preserving structured metrics and traces.
+- **Phase 3 baseline scaling/quality gates:** next and planned. Its scope and exit thresholds must be frozen before implementation; no Phase 3 command or result is claimed yet.
+- **Acceptance workflow:** the documented Phase 2 CPU path installs, tests, trains a micro checkpoint, evaluates it, benchmarks it, records train/eval/bench/report registry entries, runs multi-seed toy evaluation, and generates a baseline report while preserving structured metrics and traces.
 - **Later phases:** no SARN-Hybrid, MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, advanced safety system, or multimodal implementation has started.
 
-This progress note records the user-facing Phase 1-3 baseline contract. Phase 3 is still baseline and evaluation infrastructure. It strengthens SARN-Dense measurement only; it does not implement SARN-Hybrid or prove any future hybrid mechanism.
+This progress note records the verified Phase 1/2 baseline contract and the planned Phase 3 boundary. Phase 3 must strengthen SARN-Dense measurement without implementing or claiming SARN-Hybrid. All later model and system mechanisms remain proposals until their evidence gates pass.
 
 ## Canonical Aegis-X Roadmap
 
@@ -26,21 +26,22 @@ This is the authoritative high-level sequence. Detailed workstreams below preser
 | 0 | Documentation and research specification | architecture, risks, interfaces, ADRs, and first issue are implementation-ready |
 | 1 | SARN-Dense baseline | causal Transformer trains, saves, loads, generates, and supplies a reproducible control |
 | 2 | Evaluation harness and benchmarks | structural, systems, safety, and statistical evaluation pipelines establish baseline variance |
-| 3 | Efficient attention foundation | RoPE/GQA path passes correctness and quality-cost comparisons |
-| 4 | Latent workspace prototype | bounded slots and token/workspace routing run behind feature flags |
-| 5 | Graph message-passing reasoning | graph cycles pass null-edge, equal-compute, and length-extrapolation tests |
-| 6 | Resettable working memory | temporary memory passes capacity, conflict, reset, isolation, and poisoning tests |
-| 7 | Sparse expert routing | optional experts pass routing stability, total-memory, and active-cost gates or remain disabled |
-| 8 | Hybrid sequence engine | optional local/linear attention and SSM blocks pass workload-specific controls or remain disabled |
-| 9 | Retrieval and external memory | governed evidence and memory pass provenance, faithfulness, injection, access, and deletion tests |
-| 10 | Verifier, critic, and simulator loop | bounded checking improves accepted correctness after false-pass, coverage, and cost accounting |
-| 11 | Interpretability with sparse autoencoders | offline feature dictionaries and causal interventions clarify selected model mechanisms |
-| 12 | Advanced architecture safety tests | reward hacking, goal shift, oversight shift, tool, memory, and persistence evaluations run |
-| 13 | Hardware-adaptive runtime | Nano through Max profiles fit, disclose degradation, and preserve safety invariants |
-| 14 | Compression and efficient deployment | quantization, distillation, pruning, speculative decoding, and lottery-ticket studies move a Pareto frontier |
-| 15 | Multimodal and action adapters | selected VLM, segmentation, audio, sensor, or action adapter passes its own safety case |
-| 16 | SARN-Hybrid Alpha | accepted model mechanisms integrate end to end and survive interaction ablations |
-| 17 | Aegis-X experimental system | SARN-Hybrid, Aegis runtime, memory, retrieval, verification, safety, and supported adapters integrate under one traceable contract |
+| 3 | Baseline scaling and quality gates | SARN-Dense scaling comparisons quantify variance and pass frozen experiment-quality thresholds |
+| 4 | Efficient attention foundation | RoPE/GQA path passes correctness and quality-cost comparisons |
+| 5 | Latent workspace prototype | bounded slots and token/workspace routing run behind feature flags |
+| 6 | Graph message-passing reasoning | graph cycles pass null-edge, equal-compute, and length-extrapolation tests |
+| 7 | Resettable working memory | temporary memory passes capacity, conflict, reset, isolation, and poisoning tests |
+| 8 | Sparse expert routing | optional experts pass routing stability, total-memory, and active-cost gates or remain disabled |
+| 9 | Hybrid sequence engine | optional local/linear attention and SSM blocks pass workload-specific controls or remain disabled |
+| 10 | Retrieval and external memory | governed evidence and memory pass provenance, faithfulness, injection, access, and deletion tests |
+| 11 | Verifier, critic, and simulator loop | bounded checking improves accepted correctness after false-pass, coverage, and cost accounting |
+| 12 | Interpretability with sparse autoencoders | offline feature dictionaries and causal interventions clarify selected model mechanisms |
+| 13 | Advanced architecture safety tests | reward hacking, goal shift, oversight shift, tool, memory, and persistence evaluations run |
+| 14 | Hardware-adaptive runtime | Nano through Max profiles fit, disclose degradation, and preserve safety invariants |
+| 15 | Compression and efficient deployment | quantization, distillation, pruning, speculative decoding, and lottery-ticket studies move a Pareto frontier |
+| 16 | Multimodal and action adapters | selected VLM, segmentation, audio, sensor, or action adapter passes its own safety case |
+| 17 | SARN-Hybrid Alpha | accepted model mechanisms integrate end to end and survive interaction ablations |
+| 18 | Aegis-X experimental system | SARN-Hybrid, Aegis runtime, memory, retrieval, verification, safety, and supported adapters integrate under one traceable contract |
 
 Post-training and preference alignment are cross-cutting activities introduced only after the relevant base capability, evaluation, and safety harnesses exist.
 
@@ -126,7 +127,7 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 ### Integrated SARN-Hybrid Gate
 
-After Workstreams E–I produce viable candidates, train the strongest evidence-supported combination end to end. Compare it with SARN-Dense and equal-compute controls; ablate attention configuration, workspace, graph cycles, working memory, optional SSM blocks, and optional experts. The integrated result must report interaction effects, stability, active/total cost, and hardware-specific behavior. Passing isolated module gates does not guarantee the Phase 16 integration gate passes.
+After Workstreams E–I produce viable candidates, train the strongest evidence-supported combination end to end. Compare it with SARN-Dense and equal-compute controls; ablate attention configuration, workspace, graph cycles, working memory, optional SSM blocks, and optional experts. The integrated result must report interaction effects, stability, active/total cost, and hardware-specific behavior. Passing isolated module gates does not guarantee the Phase 17 integration gate passes.
 
 ## Aegis Knowledge and Assurance Workstreams
 

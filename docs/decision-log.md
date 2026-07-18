@@ -31,7 +31,7 @@ This file indexes accepted project-level decisions. Once implementation begins, 
 
 - SARN-Dense remains the control baseline;
 - SARN-Hybrid remains the target algorithmic hypothesis;
-- Aegis-X is the complete system hypothesis and Phase 17 integration target;
+- Aegis-X is the complete system hypothesis and Phase 18 integration target;
 - every new component remains behind a feature flag or explicit capability gate until accepted;
 - no component becomes default without matched evidence and failure analysis;
 - Aegis-X may use different evaluated artifacts and active mechanisms by hardware profile;

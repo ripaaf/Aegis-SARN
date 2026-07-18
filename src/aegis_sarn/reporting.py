@@ -292,31 +292,7 @@ def build_baseline_summary(run_dir: Path) -> dict[str, Any]:
             'SARN-Hybrid and other future mechanisms are not implemented in this baseline report.',
         ],
     }
-    summary['command'] = 'report-baseline'
-    summary['timestamp'] = generated_at
-    summary['git_commit_hash'] = summary['reproducibility']['git_commit']
-    summary['seed'] = summary['reproducibility']['seed']
-    summary['device'] = summary['reproducibility']['device']
-    summary['status'] = 'completed'
-    summary['config'] = {
-        'model': model_config,
-        'source_run_dir': str(run_dir),
-        'source_config_hashes': summary['reproducibility']['source_config_hashes'],
-    }
-    summary['metrics'] = {
-        'eval_loss': summary['evaluation']['eval_loss'],
-        'perplexity': summary['evaluation']['perplexity'],
-        'token_accuracy': summary['evaluation']['token_accuracy'],
-        'tokens_per_second': summary['benchmark']['tokens_per_second'],
-        'parameter_count': summary['parameter_count'],
-    }
-    summary['artifacts'] = {
-        'checkpoint': summary['checkpoint_path'],
-        'source_manifests': summary['source_manifests'],
-    }
-    summary['limitations'] = summary['known_limitations']
     summary['reproducibility']['report_config_hash'] = config_hash(summary)
-    summary['config_hash'] = summary['reproducibility']['report_config_hash']
     return summary
 
 
