@@ -1,6 +1,6 @@
 # Toy Dataset Cards
 
-These cards describe the generated toy datasets used by the SARN-Dense Phase 1-3 baseline. They are engineering fixtures for correctness, reproducibility, task-level evaluation, and scaling comparisons. They are not real language benchmarks and should be replaced before any claim about natural-language capability.
+These cards describe the generated toy datasets used by the SARN-Dense Phase 1-4 baseline. They are engineering fixtures for correctness, reproducibility, task-level evaluation, scaling comparisons, and matched attention comparisons. They are not real language benchmarks and should be replaced before any claim about natural-language capability.
 
 SARN-Dense is the baseline/control for these fixtures, not a useful natural-language model.
 

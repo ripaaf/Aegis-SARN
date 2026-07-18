@@ -21,9 +21,11 @@ The ambition is architectural, not rhetorical. The project does not claim that S
 
 **Phase 3 - baseline scaling, quality gates, and experiment harness implemented.** The repository adds SARN-Dense scaling sweeps, baseline comparison reports, experiment quality gates, richer deterministic toy tasks, task-level evaluation, common manifest fields, and artifact policy documentation.
 
-SARN-Dense is the only implemented model path and serves as the baseline/control. SARN-Hybrid is not implemented. MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, multimodal modules, and advanced safety systems also remain future work.
+**Phase 4 - efficient attention foundation implemented within SARN-Dense.** Multi-head attention (MHA) remains the default/control. Experimental grouped-query attention (GQA) is configurable, uses fewer stored KV heads, preserves RoPE and cached decoding, and is evaluated through matched CPU sweep, comparison, manifest, and gate paths.
 
-## Phase 1-3 Quickstart
+SARN-Dense is still the only implemented model path. Phase 4 does not implement SARN-Hybrid. MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, multimodal modules, and advanced safety systems remain future work.
+
+## Phase 1-4 Quickstart
 
 Python 3.11+ and PyTorch 2.2+ are supported. No GPU is required.
 
@@ -60,6 +62,10 @@ aegis-sarn eval-multiseed --checkpoint artifacts/phase2-check/train/sarn-dense-s
 .\.venv\Scripts\aegis-sarn.exe compare-baselines --input artifacts/phase3-sweep --output-dir artifacts/reports
 .\.venv\Scripts\aegis-sarn.exe check-gates --summary artifacts/phase3-sweep/sweep-summary.json
 .\.venv\Scripts\aegis-sarn.exe eval-tasks --checkpoint artifacts/phase2-check/train/sarn-dense-smoke.pt --output-dir runs --json
+
+.\.venv\Scripts\aegis-sarn.exe sweep-attention --output-dir artifacts/phase4-attention --device cpu --seed 123
+.\.venv\Scripts\aegis-sarn.exe compare-attention --input artifacts/phase4-attention --output-dir artifacts/reports
+.\.venv\Scripts\aegis-sarn.exe check-gates --summary artifacts/phase4-attention/attention-sweep-summary.json
 ```
 
 `reproduce-phase2` creates the stable checkpoint path `artifacts/phase2-check/train/sarn-dense-smoke.pt` plus train, evaluation, benchmark, registry, and baseline-report artifacts. Generated artifacts remain local and are ignored by Git.
@@ -71,9 +77,12 @@ aegis-sarn sweep-baseline --output-dir artifacts/phase3-sweep --device cpu --see
 aegis-sarn compare-baselines --input artifacts/phase3-sweep --output-dir artifacts/reports
 aegis-sarn check-gates --summary artifacts/phase3-sweep/sweep-summary.json
 aegis-sarn eval-tasks --checkpoint artifacts/phase2-check/train/sarn-dense-smoke.pt --output-dir runs --json
+aegis-sarn sweep-attention --output-dir artifacts/phase4-attention --device cpu --seed 123
+aegis-sarn compare-attention --input artifacts/phase4-attention --output-dir artifacts/reports
+aegis-sarn check-gates --summary artifacts/phase4-attention/attention-sweep-summary.json
 ```
 
-Phase 3 is still baseline/evaluation work. It creates a fair measurement path for tiny SARN-Dense configurations before any future Hybrid module is implemented or compared. Its toy-task results and local CPU timings are not natural-language capability claims.
+Phase 4 is still SARN-Dense baseline/evaluation work. It compares MHA with experimental GQA while holding the tiny model shape, data, seed, and run path fixed. The toy-task results and local CPU timings are not natural-language capability claims, and a GQA result does not demonstrate SARN-Hybrid.
 
 Run the deterministic CPU smoke trainer. It overfits a generated repeated-pattern batch, resumes the optimizer from its checkpoint, evaluates loss, generates tokens, and writes a JSON manifest:
 
@@ -110,7 +119,7 @@ Sampling is explicit and reproducible from a fixed seed:
 aegis-sarn run --checkpoint artifacts/phase1/sarn-dense-smoke.pt --prompt 'aegis sarn ' --strategy sample --temperature 0.8 --top-k 16 --top-p 0.9 --seed 7 --output-dir runs
 ```
 
-Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phases 2-3 also record runs in local registries, aggregate toy metrics, compare tiny dense configurations, check experiment gates, and generate Markdown/JSON reports. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and these checkpoints are not useful natural-language models. Generated artifacts are ignored by Git.
+Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phases 2-4 also record runs in local registries, aggregate toy metrics, compare tiny dense and attention configurations, check experiment gates, and generate Markdown/JSON reports. Attention manifests record attention type, query-head count, KV-head count, and grouping factor. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and these checkpoints are not useful natural-language models. Generated artifacts are ignored by Git.
 
 ## Start Here
 

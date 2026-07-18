@@ -248,11 +248,33 @@ def test_readme_powershell_examples_do_not_use_linux_backslash() -> None:
     assert '.\\.venv\\Scripts\\aegis-sarn.exe' in section
     assert 'sweep-baseline --output-dir artifacts/phase3-sweep --device cpu --seed 123' in section
     assert 'check-gates --summary artifacts/phase3-sweep/sweep-summary.json' in section
+    assert (
+        'sweep-attention --output-dir artifacts/phase4-attention --device cpu --seed 123'
+        in section
+    )
+    assert (
+        'check-gates --summary artifacts/phase4-attention/attention-sweep-summary.json'
+        in section
+    )
     assert not re.search(r'\\[ \t]*\r?\n', section)
 
 
 def test_no_sarn_hybrid_source_modules_are_required() -> None:
     source_files = [path for path in Path('src').rglob('*.py')]
+    forbidden_module_names = {
+        'hybrid',
+        'moe',
+        'workspace',
+        'working_memory',
+        'ssm',
+        'mamba',
+        'retrieval',
+        'multimodal',
+        'vlm',
+    }
 
     assert source_files
-    assert all('hybrid' not in str(path).lower() for path in source_files)
+    assert all(
+        all(name not in str(path).lower() for name in forbidden_module_names)
+        for path in source_files
+    )

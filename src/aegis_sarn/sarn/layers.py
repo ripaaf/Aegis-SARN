@@ -94,18 +94,25 @@ class CausalSelfAttention(nn.Module):
     def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         self.n_heads = config.n_heads
+        self.n_kv_heads = config.resolved_n_kv_heads
+        self.kv_group_size = config.kv_group_size
         self.head_dim = config.head_dim
         self.dropout = config.dropout
-        self.qkv = nn.Linear(config.d_model, 3 * config.d_model, bias=False)
+        # Packed as [all query heads, KV heads, KV heads]. MHA retains the
+        # original 3 * d_model projection shape, preserving old checkpoints.
+        kv_dimension = self.n_kv_heads * self.head_dim
+        self.qkv = nn.Linear(
+            config.d_model, config.d_model + (2 * kv_dimension), bias=False
+        )
         self.output = nn.Linear(config.d_model, config.d_model, bias=False)
         self.rope = RotaryEmbedding(
             config.head_dim, config.max_seq_len, config.rope_base
         )
         self.residual_dropout = nn.Dropout(config.dropout)
 
-    def _split_heads(self, inputs: Tensor) -> Tensor:
+    def _split_heads(self, inputs: Tensor, head_count: int) -> Tensor:
         batch, sequence, _ = inputs.shape
-        return inputs.view(batch, sequence, self.n_heads, self.head_dim).transpose(1, 2)
+        return inputs.view(batch, sequence, head_count, self.head_dim).transpose(1, 2)
 
     def forward(self, inputs: Tensor) -> Tensor:
         output, _ = self.forward_with_cache(inputs, past_key_value=None, use_cache=False)
@@ -117,13 +124,19 @@ class CausalSelfAttention(nn.Module):
         past_key_value: KVCache | None,
         use_cache: bool,
     ) -> tuple[Tensor, KVCache | None]:
-        query, key, value = self.qkv(inputs).chunk(3, dim=-1)
-        query = self._split_heads(query)
-        key = self._split_heads(key)
-        value = self._split_heads(value)
+        query_dimension = self.n_heads * self.head_dim
+        kv_dimension = self.n_kv_heads * self.head_dim
+        query, key, value = torch.split(
+            self.qkv(inputs),
+            (query_dimension, kv_dimension, kv_dimension),
+            dim=-1,
+        )
+        query = self._split_heads(query, self.n_heads)
+        key = self._split_heads(key, self.n_kv_heads)
+        value = self._split_heads(value, self.n_kv_heads)
         past_length = 0
         if past_key_value is not None:
-            past_key_value.validate_for(query, self.n_heads, self.head_dim)
+            past_key_value.validate_for(query, self.n_kv_heads, self.head_dim)
             past_length = past_key_value.sequence_length
         query, key = self.rope(query, key, position_offset=past_length)
 
@@ -132,10 +145,18 @@ class CausalSelfAttention(nn.Module):
             value = torch.cat((past_key_value.value, value), dim=-2)
         present = KVCache(key=key, value=value) if use_cache else None
 
-        scores = query @ key.transpose(-2, -1)
+        # GQA stores only the smaller KV tensors. Head expansion is temporary
+        # for attention computation and does not change the cache representation.
+        attention_key = key
+        attention_value = value
+        if self.kv_group_size > 1:
+            attention_key = key.repeat_interleave(self.kv_group_size, dim=1)
+            attention_value = value.repeat_interleave(self.kv_group_size, dim=1)
+
+        scores = query @ attention_key.transpose(-2, -1)
         scores = scores / math.sqrt(self.head_dim)
         query_length = inputs.shape[1]
-        key_length = key.shape[-2]
+        key_length = attention_key.shape[-2]
         query_positions = torch.arange(
             past_length, past_length + query_length, device=inputs.device
         ).unsqueeze(-1)
@@ -146,7 +167,7 @@ class CausalSelfAttention(nn.Module):
         probabilities = F.dropout(
             probabilities, p=self.dropout, training=self.training
         )
-        attended = probabilities @ value
+        attended = probabilities @ attention_value
         attended = attended.transpose(1, 2).contiguous().view_as(inputs)
         return self.residual_dropout(self.output(attended)), present
 

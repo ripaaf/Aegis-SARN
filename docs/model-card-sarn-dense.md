@@ -1,10 +1,10 @@
-# Model Card: SARN-Dense Phase 1-3
+# Model Card: SARN-Dense Phase 1-4
 
 ## Overview
 
 - Model name: SARN-Dense
 - Current role: dense Transformer control baseline for Aegis-SARN
-- Phase covered: Phase 1 hardened baseline, Phase 2 reproducible lab, and Phase 3 scaling/quality layer
+- Phase covered: Phase 1 hardened baseline, Phase 2 reproducible lab, Phase 3 scaling/quality layer, and Phase 4 efficient-attention foundation
 - Status: implemented as a small CPU-compatible research baseline
 
 SARN-Dense is a decoder-only Transformer used to validate the training, checkpointing, evaluation, generation, benchmarking, registry, and reporting stack. It is the control model for future SARN-Hybrid comparisons, not a claim that hybrid mechanisms are implemented.
@@ -14,7 +14,7 @@ It is a baseline/control, not a useful natural-language model.
 ## Architecture
 
 - Token embedding with optional tied language-model head
-- RoPE causal multi-head attention
+- RoPE causal multi-head attention by default, with experimental configurable grouped-query attention
 - RMSNorm
 - Gated feed-forward network
 - Decoder-only autoregressive language-model objective
@@ -33,6 +33,7 @@ The default micro configuration is small enough for CPU tests. Parameter count d
 - CPU generation benchmark and memory estimates
 - Registry and report generation for future baseline comparison
 - Tiny-size scaling sweeps, task-level toy evaluation, comparison reports, and experiment quality gates
+- Matched MHA/GQA sweeps with KV-head and approximate cache-memory reporting
 - Control baseline for later SARN-Hybrid experiments
 
 ## Non-Intended Use
@@ -46,7 +47,7 @@ The default micro configuration is small enough for CPU tests. Parameter count d
 
 ## Training Data
 
-Phase 1-3 training and evaluation use generated toy token batches. These datasets are deterministic fixtures, not real corpora.
+Phase 1-4 training and evaluation use generated toy token batches. These datasets are deterministic fixtures, not real corpora.
 
 ## Evaluation Data
 
@@ -59,6 +60,7 @@ Phase 2/3 evaluation uses generated toy validation batches and deterministic tas
 - Perplexity and token accuracy are meaningful only for the generated toy task distribution.
 - Generation samples are toy-byte/token outputs, not useful prose.
 - CPU benchmark numbers are local measurements and should not be generalized across machines.
+- Experimental GQA reduces stored KV heads by construction, but the toy runs do not establish useful language quality or a generally faster implementation.
 
 ## Safety Notes
 
@@ -66,4 +68,4 @@ SARN-Dense has no retrieval, tools, persistent memory, multimodal adapters, or a
 
 ## Baseline Role
 
-SARN-Dense remains the control baseline. Future SARN-Hybrid work must compare against it with matched metrics, seeds, artifacts, and system measurements. Hybrid ideas remain documented research targets until separately implemented and accepted behind evidence gates.
+SARN-Dense remains the control baseline, and MHA remains its default attention setting. Experimental GQA is a Phase 4 SARN-Dense option, not a SARN-Hybrid model path. Future SARN-Hybrid work must compare against the control with matched metrics, seeds, artifacts, and system measurements. Hybrid ideas remain documented research targets until separately implemented and accepted behind evidence gates.

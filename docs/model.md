@@ -106,7 +106,7 @@ token IDs
  -> next-token logits
 ```
 
-The initial implementation should support standard multi-head attention. GQA is added as a configuration and compared rather than silently made mandatory.
+The implemented SARN-Dense path defaults to standard multi-head attention. Phase 4 adds grouped-query attention as an experimental configuration without making it mandatory. Both paths use the same causal masking, RoPE, decoder-block, generation, checkpoint, and evaluation contracts.
 
 ### 3.2 Suggested Research Sizes
 
@@ -140,6 +140,10 @@ Rotary position embedding is the baseline positional method. Long-context extrap
 ### Grouped-Query Attention
 
 GQA uses more query heads than key/value heads, reducing KV-cache size and decode memory traffic. It may preserve quality better than a single key/value head, but the tradeoff is empirical. Record query heads, key/value heads, cache bytes per token, prefill speed, decode speed, and quality.
+
+Phase 4 implements this option inside SARN-Dense. ModelConfig records the attention type and optional KV-head count; the KV-head count must be positive, cannot exceed the query-head count, and must divide it. The MHA default resolves the KV-head count to the query-head count. GQA caches only KV heads and expands them by grouping for attention computation. Equal query and KV head counts are tested as MHA-equivalent.
+
+This foundation is not a SARN-Hybrid implementation. The Phase 4 sweep uses generated toy tasks and local CPU timing to validate correctness and cost accounting; it does not establish useful language quality.
 
 ### Local or Sliding Attention
 

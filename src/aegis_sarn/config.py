@@ -18,6 +18,7 @@ class ModelConfig:
     d_model: int = 64
     n_layers: int = 2
     n_heads: int = 4
+    attention_type: Literal['mha', 'gqa'] = 'mha'
     n_kv_heads: int | None = None
     ffn_hidden_dim: int = 192
     dropout: float = 0.0
@@ -46,13 +47,29 @@ class ModelConfig:
             raise ConfigError('dropout must be in [0, 1)')
         if self.rope_base <= 1.0:
             raise ConfigError('rope_base must be greater than 1')
-        resolved_kv_heads = self.n_heads if self.n_kv_heads is None else self.n_kv_heads
-        if resolved_kv_heads != self.n_heads:
-            raise ConfigError('SARN-Dense supports MHA only; GQA is future work')
+        if self.attention_type not in ('mha', 'gqa'):
+            raise ConfigError('attention_type must be mha or gqa')
+        resolved_kv_heads = self.resolved_n_kv_heads
+        if resolved_kv_heads <= 0:
+            raise ConfigError('n_kv_heads must be positive')
+        if resolved_kv_heads > self.n_heads:
+            raise ConfigError('n_kv_heads cannot exceed n_heads')
+        if self.n_heads % resolved_kv_heads != 0:
+            raise ConfigError('n_kv_heads must divide n_heads')
+        if self.attention_type == 'mha' and resolved_kv_heads != self.n_heads:
+            raise ConfigError('mha requires n_kv_heads to equal n_heads')
 
     @property
     def head_dim(self) -> int:
         return self.d_model // self.n_heads
+
+    @property
+    def resolved_n_kv_heads(self) -> int:
+        return self.n_heads if self.n_kv_heads is None else self.n_kv_heads
+
+    @property
+    def kv_group_size(self) -> int:
+        return self.n_heads // self.resolved_n_kv_heads
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -200,6 +217,14 @@ class RunManifest:
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
+        if self.model_config:
+            n_heads = int(self.model_config.get('n_heads', 0))
+            raw_kv_heads = self.model_config.get('n_kv_heads')
+            n_kv_heads = n_heads if raw_kv_heads is None else int(raw_kv_heads)
+            payload['attention_type'] = self.model_config.get('attention_type', 'mha')
+            payload['n_heads'] = n_heads
+            payload['n_kv_heads'] = n_kv_heads
+            payload['kv_group_size'] = n_heads // n_kv_heads
         payload['timestamp'] = self.created_at
         payload['git_commit_hash'] = self.git_commit
         payload['config'] = {

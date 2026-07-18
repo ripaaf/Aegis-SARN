@@ -72,16 +72,17 @@ def benchmark_generation(
             for parameter in model.parameters()
         )
         cache_bytes = 0
+        cache_bytes_per_token = 0
         if decoding_config.use_kv_cache:
             sample_parameter = next(model.parameters())
-            cache_bytes = (
+            cache_bytes_per_token = (
                 model.config.n_layers
                 * 2
-                * model.config.n_heads
-                * model.config.max_seq_len
+                * model.config.resolved_n_kv_heads
                 * model.config.head_dim
                 * sample_parameter.element_size()
             )
+            cache_bytes = cache_bytes_per_token * model.config.max_seq_len
         metrics: dict[str, object] = {
             'tokens_per_second': generated_tokens / max(duration_seconds, 1e-12),
             'runtime_duration_ms': duration_seconds * 1000.0,
@@ -93,6 +94,11 @@ def benchmark_generation(
             'active_parameter_count': total_parameters,
             'parameter_memory_bytes': parameter_bytes,
             'approximate_kv_cache_bytes': cache_bytes,
+            'kv_cache_bytes_per_token': cache_bytes_per_token,
+            'attention_type': model.config.attention_type,
+            'n_heads': model.config.n_heads,
+            'n_kv_heads': model.config.resolved_n_kv_heads,
+            'kv_group_size': model.config.kv_group_size,
             'device': str(selected_device),
         }
         trace.emit('bench.completed', 'eval.benchmark', metrics)

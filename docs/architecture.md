@@ -74,7 +74,7 @@ Records structured events, timings, budgets, model and config identity, memory a
 
 SARN owns learned tensor computation; Aegis owns orchestration and effects. The project has two explicit model paths.
 
-### 3.1 Phase 1 Control Path
+### 3.1 Current SARN-Dense Control Path
 
 ```text
 request
@@ -83,13 +83,14 @@ request
   -> SARN-Dense
        embedding + RoPE
        dense causal Transformer blocks
+       MHA by default or experimental GQA
        decoder head
   -> candidate output
   -> Aegis policy and configured checks
   -> final output + trace
 ```
 
-SARN-Dense establishes correctness, training behavior, model/runtime contracts, and matched baselines. It is not the final architectural identity.
+SARN-Dense establishes correctness, training behavior, model/runtime contracts, and matched baselines. Phase 4 GQA remains an experimental attention configuration within this control path. It is not the final architectural identity and does not make SARN-Hybrid implemented.
 
 ### 3.2 Long-Term SARN-Hybrid Path
 

@@ -87,7 +87,7 @@ def default_sweep_configs(train_steps: int | None = None) -> list[SweepConfig]:
     ]
 
 
-def _common_summary(
+def build_common_summary(
     command: str,
     run_id: str,
     created_at: str,
@@ -278,7 +278,7 @@ def run_baseline_sweep(
         'summary_markdown': str(output_dir / 'sweep-summary.md'),
         'registry': str(registry_path),
     }
-    summary = _common_summary(
+    summary = build_common_summary(
         command='sweep-baseline',
         run_id=run_id,
         created_at=created_at,
@@ -428,7 +428,7 @@ def compare_baselines(input_dir: Path, output_dir: Path) -> dict[str, Any]:
         },
     }
 
-    summary = _common_summary(
+    summary = build_common_summary(
         command='compare-baselines',
         run_id=run_id,
         created_at=created_at,
@@ -611,6 +611,58 @@ def check_gates(
                     present,
                     'ok' if present else ', '.join(missing),
                 )
+
+    if summary.get('command') == 'sweep-attention':
+        completed = [item for item in items if item.get('status') == 'completed']
+        mha_items = [
+            item for item in completed if item.get('attention_type') == 'mha'
+        ]
+        gqa_items = [
+            item for item in completed if item.get('attention_type') == 'gqa'
+        ]
+        add(
+            'attention:mha_baseline_present',
+            bool(mha_items),
+            f'{len(mha_items)} completed MHA variant(s)',
+        )
+        add(
+            'attention:gqa_variant_present',
+            bool(gqa_items),
+            f'{len(gqa_items)} completed GQA variant(s)',
+        )
+        for item in completed:
+            name = str(item.get('config_name') or 'attention')
+            for field in ('n_heads', 'n_kv_heads', 'kv_group_size'):
+                value = item.get(field)
+                add(
+                    f'{name}:{field}_positive',
+                    _is_finite_number(value) and float(value) > 0,
+                    str(value),
+                )
+            cache_bytes = item.get('approximate_kv_cache_bytes')
+            add(
+                f'{name}:kv_cache_bytes_positive',
+                _is_finite_number(cache_bytes) and float(cache_bytes) > 0,
+                str(cache_bytes),
+            )
+        lower_cache = False
+        detail = 'MHA or GQA result missing or has invalid cache bytes'
+        mha_cache_values = [
+            float(item['approximate_kv_cache_bytes'])
+            for item in mha_items
+            if _is_finite_number(item.get('approximate_kv_cache_bytes'))
+        ]
+        gqa_cache_values = [
+            float(item['approximate_kv_cache_bytes'])
+            for item in gqa_items
+            if _is_finite_number(item.get('approximate_kv_cache_bytes'))
+        ]
+        if mha_cache_values and gqa_cache_values:
+            mha_cache = min(mha_cache_values)
+            best_gqa_cache = min(gqa_cache_values)
+            lower_cache = best_gqa_cache < mha_cache
+            detail = f'best GQA {best_gqa_cache:g} < MHA {mha_cache:g}'
+        add('attention:gqa_reduces_kv_cache', lower_cache, detail)
 
     passed = all(check['passed'] for check in checks)
     return {

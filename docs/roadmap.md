@@ -2,7 +2,7 @@
 
 ## 1. Roadmap Rules
 
-This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–3 build and qualify the SARN-Dense control and evaluation laboratory. Phases 4–9 construct and test proposed SARN-Hybrid mechanisms; Phases 10–16 add governed system capabilities; Phases 17–18 are integration gates. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
+This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–4 build and qualify the SARN-Dense control, evaluation laboratory, and efficient-attention foundation. Phases 5–9 construct and test proposed SARN-Hybrid mechanisms; Phases 10–16 add governed system capabilities; Phases 17–18 are integration gates. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
 
 No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
 
@@ -12,10 +12,11 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 - **Phase 1 dense baseline:** implemented and hardened with CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, CLI output, opt-in KV caching, sampled decoding, toy evaluation, CPU benchmarking, and reproducibility manifests.
 - **Phase 2 reproducible baseline lab:** implemented for the SARN-Dense control baseline with a local run registry, `list-runs`, baseline Markdown/JSON report generation, `eval-multiseed`, `reproduce-phase2`, dataset/model cards, PowerShell-friendly commands, and focused tests.
 - **Phase 3 baseline scaling/quality gates:** implemented as SARN-Dense baseline/evaluation work with `sweep-baseline`, `compare-baselines`, `check-gates`, `eval-tasks`, richer deterministic toy tasks, artifact policy documentation, and common manifest fields.
-- **Acceptance workflow:** the documented CPU path installs, tests, reproduces Phase 2, sweeps tiny SARN-Dense configurations, evaluates task-level metrics, benchmarks generation, records registry entries, compares baselines, checks quality gates, and generates reports while preserving structured metrics and traces.
-- **Later phases:** no SARN-Hybrid, MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, advanced safety system, or multimodal implementation has started.
+- **Phase 4 efficient attention foundation:** implemented within SARN-Dense with MHA retained as the default/control, configurable experimental GQA, reduced stored KV-head/cache shapes, matched attention sweeps, comparison reports, attention metadata, checkpoint compatibility, and Phase 4 gates.
+- **Acceptance workflow:** the documented CPU path installs, tests, reproduces Phase 2, sweeps tiny SARN-Dense sizes and matched MHA/GQA variants, evaluates task-level metrics, benchmarks generation/cache cost, records registry entries, compares results, checks quality gates, and generates reports while preserving structured metrics and traces.
+- **Later phases:** Phase 5 is next/planned. No SARN-Hybrid model path, MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, advanced safety system, or multimodal implementation has started.
 
-This progress note records the verified Phase 1-3 baseline contract. Phase 3 strengthens SARN-Dense measurement only; it does not implement or validate SARN-Hybrid. All later model and system mechanisms remain proposals until their evidence gates pass.
+This progress note records the verified Phase 1-4 SARN-Dense contract. Phase 4 adds an experimental GQA option and matched evidence path inside SARN-Dense; it does not implement or validate SARN-Hybrid. All later model and system mechanisms remain proposals until their evidence gates pass.
 
 ## Canonical Aegis-X Roadmap
 
@@ -87,11 +88,13 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 ### Workstream E — Efficient Attention Foundation
 
-**Goal:** establish the RoPE/GQA attention foundation shared by SARN-Hybrid while reducing decode memory/cost without unmeasured quality loss.
+**Goal:** establish and measure the RoPE/GQA attention foundation inside the SARN-Dense control path while reducing decode memory/cost without unmeasured quality loss.
 
 **Experiments:** MHA versus GQA; KV-cache precision; optional local attention; RoPE context behavior and carefully selected scaling methods.
 
 **Exit gate:** at least one profile shows a practically meaningful measured benefit at or above its quality floor, or all tested variants are documented as rejected. Accepted settings remain configurable rather than deleting the reference path.
+
+**Current implementation:** Phase 4 provides correctness tests and matched tiny CPU MHA/GQA sweeps. MHA remains the default. The measured cache reduction is an implementation property; toy quality and local timing results are not sufficient to accept a SARN-Hybrid path.
 
 ### Workstream F — Latent Workspace and Graph Core
 

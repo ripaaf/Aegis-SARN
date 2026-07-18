@@ -11,6 +11,9 @@ Generated artifacts are reproducible outputs, not the source of truth. Source co
 - Phase 3 sweeps: `artifacts/phase3-sweep/sweep-summary.md` and `.json`
 - Phase 3 comparisons: `artifacts/reports/baseline-comparison.md` and `.json`
 
+- Phase 4 attention sweeps: artifacts/phase4-attention/attention-sweep-summary.md and attention-sweep-summary.json
+- Phase 4 attention comparisons: artifacts/reports/attention-comparison.md and attention-comparison.json
+
 ## Git Policy
 
 Commit source files, tests, and documentation. Do not commit generated checkpoints, registries, reports, run directories, caches, virtual environments, or bytecode unless a maintainer explicitly promotes a small artifact into tracked documentation.

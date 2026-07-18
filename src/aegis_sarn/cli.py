@@ -21,6 +21,7 @@ from aegis_sarn.config import (
 )
 from aegis_sarn.eval import benchmark_generation, evaluate_tasks, evaluate_toy
 from aegis_sarn.phase3 import check_gates, compare_baselines, run_baseline_sweep
+from aegis_sarn.phase4 import compare_attention, run_attention_sweep
 from aegis_sarn.registry import record_manifest, registry_entries
 from aegis_sarn.reporting import write_baseline_report
 from aegis_sarn.sarn.checkpoint import load_checkpoint
@@ -160,6 +161,10 @@ def _parser() -> argparse.ArgumentParser:
     train_parser.add_argument('--d-model', type=int, default=48)
     train_parser.add_argument('--layers', type=int, default=2)
     train_parser.add_argument('--heads', type=int, default=4)
+    train_parser.add_argument(
+        '--attention-type', choices=('mha', 'gqa'), default='mha'
+    )
+    train_parser.add_argument('--n-kv-heads', type=int)
     train_parser.add_argument('--learning-rate', type=float, default=5e-3)
     train_parser.add_argument('--seed', type=int, default=7)
     train_parser.add_argument('--device', default='cpu')
@@ -259,6 +264,33 @@ def _parser() -> argparse.ArgumentParser:
     compare_parser.add_argument('--output-dir', type=Path, default=Path('artifacts/reports'))
     compare_parser.add_argument('--json', action='store_true')
 
+    attention_sweep_parser = subparsers.add_parser(
+        'sweep-attention',
+        help='compare matched MHA and experimental GQA SARN-Dense variants',
+    )
+    attention_sweep_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/phase4-attention')
+    )
+    attention_sweep_parser.add_argument('--device', default='cpu')
+    attention_sweep_parser.add_argument('--seed', type=int, default=123)
+    attention_sweep_parser.add_argument('--train-steps', type=int, default=8)
+    attention_sweep_parser.add_argument('--batch-size', type=int, default=2)
+    attention_sweep_parser.add_argument('--sequence-length', type=int, default=16)
+    attention_sweep_parser.add_argument('--max-new-tokens', type=int, default=2)
+    attention_sweep_parser.add_argument('--bench-repeats', type=int, default=1)
+    attention_sweep_parser.add_argument('--json', action='store_true')
+
+    attention_compare_parser = subparsers.add_parser(
+        'compare-attention', help='compare Phase 4 MHA/GQA sweep outputs'
+    )
+    attention_compare_parser.add_argument(
+        '--input', type=Path, default=Path('artifacts/phase4-attention')
+    )
+    attention_compare_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/reports')
+    )
+    attention_compare_parser.add_argument('--json', action='store_true')
+
     gates_parser = subparsers.add_parser(
         'check-gates', help='check basic experiment quality gates'
     )
@@ -344,6 +376,8 @@ def _train_command(arguments: argparse.Namespace) -> int:
         d_model=arguments.d_model,
         n_layers=arguments.layers,
         n_heads=arguments.heads,
+        attention_type=arguments.attention_type,
+        n_kv_heads=arguments.n_kv_heads,
         ffn_hidden_dim=arguments.d_model * 3,
     )
     training_config = TrainingConfig(
@@ -769,6 +803,58 @@ def _compare_baselines_command(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _sweep_attention_command(arguments: argparse.Namespace) -> int:
+    summary = run_attention_sweep(
+        output_dir=arguments.output_dir,
+        device=arguments.device,
+        seed=arguments.seed,
+        train_steps=arguments.train_steps,
+        batch_size=arguments.batch_size,
+        sequence_length=arguments.sequence_length,
+        max_new_tokens=arguments.max_new_tokens,
+        bench_repeats=arguments.bench_repeats,
+    )
+    payload = {
+        'run_id': summary['run_id'],
+        'summary_json_path': summary['artifacts']['summary_json'],
+        'summary_markdown_path': summary['artifacts']['summary_markdown'],
+        'registry_path': summary['artifacts']['registry'],
+        'metrics': summary['metrics'],
+        'results': summary['results'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense attention sweep completed')
+        print('  variants: {}'.format(summary['metrics']['config_count']))
+        print('  summary: {}'.format(summary['artifacts']['summary_json']))
+        print('  markdown: {}'.format(summary['artifacts']['summary_markdown']))
+        print('  registry: {}'.format(summary['artifacts']['registry']))
+    return 0
+
+
+def _compare_attention_command(arguments: argparse.Namespace) -> int:
+    summary = compare_attention(arguments.input, arguments.output_dir)
+    payload = {
+        'run_id': summary['run_id'],
+        'comparison_json_path': summary['artifacts']['comparison_json'],
+        'comparison_markdown_path': summary['artifacts']['comparison_markdown'],
+        'winners': summary['winners'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense attention comparison generated')
+        print('  markdown: {}'.format(summary['artifacts']['comparison_markdown']))
+        print('  json: {}'.format(summary['artifacts']['comparison_json']))
+        print(
+            '  balanced: {}'.format(
+                summary['winners']['best_balanced_attention']['config_name']
+            )
+        )
+    return 0
+
+
 def _check_gates_command(arguments: argparse.Namespace) -> int:
     result = check_gates(
         summary_path=arguments.summary,
@@ -811,6 +897,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _sweep_baseline_command(arguments)
     if arguments.command == 'compare-baselines':
         return _compare_baselines_command(arguments)
+    if arguments.command == 'sweep-attention':
+        return _sweep_attention_command(arguments)
+    if arguments.command == 'compare-attention':
+        return _compare_attention_command(arguments)
     if arguments.command == 'check-gates':
         return _check_gates_command(arguments)
     raise AssertionError(f'unhandled command: {arguments.command}')
