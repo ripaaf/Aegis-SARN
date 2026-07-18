@@ -19,11 +19,11 @@ The ambition is architectural, not rhetorical. The project does not claim that S
 
 **Phase 2 - reproducible baseline evaluation lab implemented.** The repository adds a local run registry, multi-seed toy evaluation, baseline report generation, dataset and model cards, and a CPU reproduction pipeline.
 
-**Phase 3 - baseline scaling/quality gates is next.** Phase 3 remains planned and evidence-gated; no Phase 3 scaling or quality-gate implementation is claimed yet.
+**Phase 3 - baseline scaling, quality gates, and experiment harness implemented.** The repository adds SARN-Dense scaling sweeps, baseline comparison reports, experiment quality gates, richer deterministic toy tasks, task-level evaluation, common manifest fields, and artifact policy documentation.
 
 SARN-Dense is the only implemented model path and serves as the baseline/control. SARN-Hybrid is not implemented. MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, multimodal modules, and advanced safety systems also remain future work.
 
-## Phase 1-2 Quickstart
+## Phase 1-3 Quickstart
 
 Python 3.11+ and PyTorch 2.2+ are supported. No GPU is required.
 
@@ -55,9 +55,25 @@ aegis-sarn list-runs --registry artifacts/phase2-check/runs/registry.json
 aegis-sarn report-baseline --help
 aegis-sarn report-baseline --run-dir artifacts/phase2-check --output-dir artifacts/phase2-check/reports --registry artifacts/phase2-check/runs/registry.json
 aegis-sarn eval-multiseed --checkpoint artifacts/phase2-check/train/sarn-dense-smoke.pt --output-dir artifacts/phase2-check/runs --num-seeds 3 --json
+
+.\.venv\Scripts\aegis-sarn.exe sweep-baseline --output-dir artifacts/phase3-sweep --device cpu --seed 123
+.\.venv\Scripts\aegis-sarn.exe compare-baselines --input artifacts/phase3-sweep --output-dir artifacts/reports
+.\.venv\Scripts\aegis-sarn.exe check-gates --summary artifacts/phase3-sweep/sweep-summary.json
+.\.venv\Scripts\aegis-sarn.exe eval-tasks --checkpoint artifacts/phase2-check/train/sarn-dense-smoke.pt --output-dir runs --json
 ```
 
 `reproduce-phase2` creates the stable checkpoint path `artifacts/phase2-check/train/sarn-dense-smoke.pt` plus train, evaluation, benchmark, registry, and baseline-report artifacts. Generated artifacts remain local and are ignored by Git.
+
+Normal command examples after the environment is activated:
+
+```powershell
+aegis-sarn sweep-baseline --output-dir artifacts/phase3-sweep --device cpu --seed 123
+aegis-sarn compare-baselines --input artifacts/phase3-sweep --output-dir artifacts/reports
+aegis-sarn check-gates --summary artifacts/phase3-sweep/sweep-summary.json
+aegis-sarn eval-tasks --checkpoint artifacts/phase2-check/train/sarn-dense-smoke.pt --output-dir runs --json
+```
+
+Phase 3 is still baseline/evaluation work. It creates a fair measurement path for tiny SARN-Dense configurations before any future Hybrid module is implemented or compared. Its toy-task results and local CPU timings are not natural-language capability claims.
 
 Run the deterministic CPU smoke trainer. It overfits a generated repeated-pattern batch, resumes the optimizer from its checkpoint, evaluates loss, generates tokens, and writes a JSON manifest:
 
@@ -94,7 +110,7 @@ Sampling is explicit and reproducible from a fixed seed:
 aegis-sarn run --checkpoint artifacts/phase1/sarn-dense-smoke.pt --prompt 'aegis sarn ' --strategy sample --temperature 0.8 --top-k 16 --top-p 0.9 --seed 7 --output-dir runs
 ```
 
-Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phase 2 also records runs in a local registry, aggregates toy evaluation across seeds, and generates Markdown/JSON baseline reports. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and this checkpoint is not a useful natural-language model. Generated artifacts are ignored by Git.
+Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phases 2-3 also record runs in local registries, aggregate toy metrics, compare tiny dense configurations, check experiment gates, and generate Markdown/JSON reports. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and these checkpoints are not useful natural-language models. Generated artifacts are ignored by Git.
 
 ## Start Here
 
@@ -106,6 +122,7 @@ Every train, evaluation, benchmark, and run command records resolved configurati
 6. [Roadmap and release gates](docs/roadmap.md)
 7. [Aegis Framework specification](docs/framework.md)
 8. [Repository and package layout](docs/repository-layout.md)
+9. [Artifact policy](docs/artifacts.md)
 
 ## Working Rules
 

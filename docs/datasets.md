@@ -1,6 +1,6 @@
 # Toy Dataset Cards
 
-These cards describe the generated toy datasets used by the SARN-Dense Phase 1/2 baseline. They are engineering fixtures for correctness, reproducibility, and variance checks. They are not real language benchmarks and should be replaced before any claim about natural-language capability.
+These cards describe the generated toy datasets used by the SARN-Dense Phase 1-3 baseline. They are engineering fixtures for correctness, reproducibility, task-level evaluation, and scaling comparisons. They are not real language benchmarks and should be replaced before any claim about natural-language capability.
 
 SARN-Dense is the baseline/control for these fixtures, not a useful natural-language model.
 
@@ -26,6 +26,50 @@ SARN-Dense is the baseline/control for these fixtures, not a useful natural-lang
 - Why this is not a real language benchmark: success measures format copying, not comprehension or useful generation.
 - Future replacement: structural generalization tasks with frozen generators, train/validation/test seeds, and matched dense baselines.
 
+## `toy/alternating_pattern`
+
+- Dataset name: `toy/alternating_pattern`
+- Purpose: test whether the baseline follows a two-token alternation with per-example token choices and phase.
+- Generation method: seeded examples choose two small token IDs and an alternation phase, then repeat `[a, b]` or `[b, a]`.
+- Train/eval split: split-specific seed offsets create deterministic variants.
+- Expected behavior: a trained model should learn local alternation transitions.
+- Limitations: very short-period structure and no semantics.
+- Why this is not a real language benchmark: it measures a simple finite-state transition.
+- Future replacement: controlled finite-state and grammar suites with held-out structural variants.
+
+## `toy/modular_counting`
+
+- Dataset name: `toy/modular_counting`
+- Purpose: test a simple arithmetic-like next-token rule.
+- Generation method: choose a seeded start token and emit `(start + index) mod modulus`.
+- Train/eval split: split-specific seed offsets choose different starts.
+- Expected behavior: a trained model should learn the modular successor relation for the short range.
+- Limitations: tiny vocabulary and deterministic periodicity.
+- Why this is not a real language benchmark: it is a synthetic token rule, not language modeling.
+- Future replacement: documented algorithmic generalization tasks with controlled train/test lengths.
+
+## `toy/bracket_structure`
+
+- Dataset name: `toy/bracket_structure`
+- Purpose: test simple local structure markers.
+- Generation method: repeat `[open, payload, close, separator]` with seeded payload token choice.
+- Train/eval split: split-specific seed offsets create deterministic payload variants.
+- Expected behavior: a trained model should predict marker order and payload repetition.
+- Limitations: no nested parsing, semantics, or natural syntax.
+- Why this is not a real language benchmark: it is a toy marker pattern, not grammar understanding.
+- Future replacement: frozen synthetic grammar tasks with held-out depths and forms.
+
+## `toy/rule_following`
+
+- Dataset name: `toy/rule_following`
+- Purpose: test a tiny trigger-response token rule.
+- Generation method: choose seeded trigger/response pairs from a fixed table and concatenate them.
+- Train/eval split: split-specific seed offsets create deterministic rule sequences.
+- Expected behavior: a trained model should learn local trigger-to-response transitions.
+- Limitations: fixed table, small vocabulary, no instruction understanding.
+- Why this is not a real language benchmark: it is symbolic next-token patterning, not following natural-language instructions.
+- Future replacement: governed instruction/task datasets after baseline measurement and contamination policy exist.
+
 ## `toy/byte_text`
 
 - Dataset name: `toy/byte_text`
@@ -40,6 +84,6 @@ SARN-Dense is the baseline/control for these fixtures, not a useful natural-lang
 ## Governance Notes
 
 - All toy datasets are generated locally and require no network access.
-- Metrics from these datasets are suitable for regression tests and reproducibility checks only.
+- Metrics from these datasets are suitable for regression tests, scaling sweeps, and reproducibility checks only.
 - Reports must state that toy-byte generation is not useful natural-language output.
 - Future datasets should include source, license, preprocessing, split policy, deduplication, contamination checks, and intended replacement criteria.

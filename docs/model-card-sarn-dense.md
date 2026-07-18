@@ -1,10 +1,10 @@
-# Model Card: SARN-Dense Phase 1/2
+# Model Card: SARN-Dense Phase 1-3
 
 ## Overview
 
 - Model name: SARN-Dense
 - Current role: dense Transformer control baseline for Aegis-SARN
-- Phase covered: Phase 1 hardened baseline plus Phase 2 reproducible baseline evaluation lab
+- Phase covered: Phase 1 hardened baseline, Phase 2 reproducible lab, and Phase 3 scaling/quality layer
 - Status: implemented as a small CPU-compatible research baseline
 
 SARN-Dense is a decoder-only Transformer used to validate the training, checkpointing, evaluation, generation, benchmarking, registry, and reporting stack. It is the control model for future SARN-Hybrid comparisons, not a claim that hybrid mechanisms are implemented.
@@ -32,6 +32,7 @@ The default micro configuration is small enough for CPU tests. Parameter count d
 - Toy loss, perplexity, and token-accuracy evaluation
 - CPU generation benchmark and memory estimates
 - Registry and report generation for future baseline comparison
+- Tiny-size scaling sweeps, task-level toy evaluation, comparison reports, and experiment quality gates
 - Control baseline for later SARN-Hybrid experiments
 
 ## Non-Intended Use
@@ -45,11 +46,11 @@ The default micro configuration is small enough for CPU tests. Parameter count d
 
 ## Training Data
 
-Phase 1/2 smoke training uses generated toy token batches such as `toy/repeated_pattern`. These datasets are deterministic fixtures, not real corpora.
+Phase 1-3 training and evaluation use generated toy token batches. These datasets are deterministic fixtures, not real corpora.
 
 ## Evaluation Data
 
-Phase 2 toy evaluation uses generated toy validation batches. The metrics are useful for regression testing and reproducibility checks only. They do not measure natural-language quality.
+Phase 2/3 evaluation uses generated toy validation batches and deterministic task variants. The metrics are useful for regression testing, scaling comparisons, and reproducibility checks only. They do not measure natural-language quality.
 
 ## Limitations
 

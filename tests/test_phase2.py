@@ -174,6 +174,22 @@ def test_report_baseline_creates_markdown_and_json(
     assert exit_code == 0
     assert markdown_path.exists()
     assert json_path.exists()
+    assert {
+        'schema_version',
+        'run_id',
+        'command',
+        'timestamp',
+        'git_commit_hash',
+        'package_version',
+        'config',
+        'config_hash',
+        'seed',
+        'device',
+        'status',
+        'metrics',
+        'artifacts',
+        'limitations',
+    }.issubset(summary)
     assert summary['evaluation']['token_accuracy'] == 0.75
     assert summary['benchmark']['tokens_per_second'] == 123.0
     assert 'not a real language benchmark' in markdown_path.read_text(encoding='utf-8')
@@ -289,4 +305,3 @@ def test_windows_powershell_readme_examples_do_not_use_linux_continuation() -> N
     assert 'report-baseline --help' in section
     assert '--checkpoint artifacts/phase2-check/train/sarn-dense-smoke.pt' in section
     assert '--num-seeds 3 --json' in section
-    assert 'sweep-baseline' not in section

@@ -11,11 +11,11 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 - **Phase 0 specification:** complete for the initial implementation boundary.
 - **Phase 1 dense baseline:** implemented and hardened with CPU tests covering configuration, causal isolation, shapes, RoPE, deterministic initialization, backward loss, generated tasks, checkpoint/optimizer resume, smoke overfit, Aegis backends/controller/budgets, structured traces, CLI output, opt-in KV caching, sampled decoding, toy evaluation, CPU benchmarking, and reproducibility manifests.
 - **Phase 2 reproducible baseline lab:** implemented for the SARN-Dense control baseline with a local run registry, `list-runs`, baseline Markdown/JSON report generation, `eval-multiseed`, `reproduce-phase2`, dataset/model cards, PowerShell-friendly commands, and focused tests.
-- **Phase 3 baseline scaling/quality gates:** next and planned. Its scope and exit thresholds must be frozen before implementation; no Phase 3 command or result is claimed yet.
-- **Acceptance workflow:** the documented Phase 2 CPU path installs, tests, trains a micro checkpoint, evaluates it, benchmarks it, records train/eval/bench/report registry entries, runs multi-seed toy evaluation, and generates a baseline report while preserving structured metrics and traces.
+- **Phase 3 baseline scaling/quality gates:** implemented as SARN-Dense baseline/evaluation work with `sweep-baseline`, `compare-baselines`, `check-gates`, `eval-tasks`, richer deterministic toy tasks, artifact policy documentation, and common manifest fields.
+- **Acceptance workflow:** the documented CPU path installs, tests, reproduces Phase 2, sweeps tiny SARN-Dense configurations, evaluates task-level metrics, benchmarks generation, records registry entries, compares baselines, checks quality gates, and generates reports while preserving structured metrics and traces.
 - **Later phases:** no SARN-Hybrid, MoE, graph workspace, resettable working memory, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, advanced safety system, or multimodal implementation has started.
 
-This progress note records the verified Phase 1/2 baseline contract and the planned Phase 3 boundary. Phase 3 must strengthen SARN-Dense measurement without implementing or claiming SARN-Hybrid. All later model and system mechanisms remain proposals until their evidence gates pass.
+This progress note records the verified Phase 1-3 baseline contract. Phase 3 strengthens SARN-Dense measurement only; it does not implement or validate SARN-Hybrid. All later model and system mechanisms remain proposals until their evidence gates pass.
 
 ## Canonical Aegis-X Roadmap
 

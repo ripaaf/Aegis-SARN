@@ -26,7 +26,7 @@ This is the authoritative navigation page. Documents are split by responsibility
 ## Building and Training
 
 - [Data](data.md) — dataset governance, mixtures, processing, and contamination controls
-- [Phase 2 toy dataset cards](datasets.md) — generated-fixture provenance, scope, and limitations
+- [Phase 2/3 toy dataset cards](datasets.md) — generated-fixture provenance, scope, and limitations
 - [SARN-Dense model card](model-card-sarn-dense.md) — baseline/control capabilities and limitations
 - [Training](training.md) — stages, objectives, checkpoints, optimizer studies, and reproducibility
 - [Development workflow](development.md) — implementation standards, testing, experiments, and contribution flow
@@ -35,6 +35,7 @@ This is the authoritative navigation page. Documents are split by responsibility
 ## Evidence and Assurance
 
 - [Benchmarks](benchmarks.md) — capability, systems, ablation, robustness, and statistical evaluation
+- [Artifact policy](artifacts.md) — generated-output locations, Git policy, cleanup, and Windows write behavior
 - [Safety](safety.md) — threat model, capability boundaries, tool controls, and alignment evaluation
 - [Interpretability](interpretability.md) — probes, sparse autoencoders, interventions, and limitations
 - [Risk register](risks.md) — technical, scientific, operational, legal, and project risks
@@ -48,4 +49,4 @@ This is the authoritative navigation page. Documents are split by responsibility
 - **Accepted**: passed its stated evidence gate.
 - **Rejected**: tested and not adopted; results remain documented.
 
-Phase 1 SARN-Dense and its hardening are implemented, and the Phase 2 reproducible baseline lab is implemented and verified on CPU. Phase 3 baseline scaling/quality gates is next and planned. SARN-Hybrid and later mechanisms remain proposed rather than accepted.
+Phase 1 SARN-Dense and its hardening, the Phase 2 reproducible baseline lab, and the Phase 3 baseline scaling/quality layer are implemented and verified on CPU. SARN-Dense remains the only implemented model path; SARN-Hybrid and later mechanisms remain proposed rather than accepted.
