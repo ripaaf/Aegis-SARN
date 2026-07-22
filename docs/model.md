@@ -240,6 +240,18 @@ Working memory is separate from persistent user memory and from the Transformer 
 - graph-edge state scoped to a run;
 - non-differentiable associative cache managed by Aegis.
 
+### Phase 7 Resettable Working Memory Prototype
+
+Phase 7 implements the explicit-slot candidate as a small optional module inside the SARN-Dense research harness. It consumes token states plus the enabled Phase 5 workspace history after any configured Phase 6 graph cycles. A gated write routes each position into a fixed number of model-dimension slots; attention or slot mixing can read the current slot state back into token states before workspace writeback.
+
+The memory module is experimental and disabled by default. Enabling it requires an enabled bounded workspace and a positive slot count. Its complete state is a tensor passed explicitly through the generation cache. A forward call without that cache begins from zero slots; `per_forward` always resets, `per_generation` continues only through that call chain, and `manual` continues only when its caller explicitly supplies the prior tensor. Dropping the tensor is the manual reset operation. The module stores no hidden process-global or module-global state.
+
+Serving forwards do not mutate model weights. No memory tensor is written to disk or an external service. This path is therefore not persistent memory, user memory, retrieval, self-learning, or long-term memory. It has no tool, policy, or side-effect authority. Aegis continues to own persistent storage and governed runtime capabilities.
+
+The matched Phase 7 sweep includes dense, workspace, graph, null-memory, memory-gated, and graph-memory-gated controls. Six deterministic fixtures cover key/value recall, distractors, conflicting batch rows, overwrite rules, tiny capacity pressure, and delayed copy. Manifests report slot configuration, read/write modes, decay, parameter counts, gate/write/state norms, and an independent-call reset/isolation probe. These measurements use tiny generated data and do not demonstrate human-like memory or useful natural-language behavior.
+
+Phase 7 establishes a correctness and measurement path only. It neither accepts memory as part of a final architecture nor makes SARN-Hybrid implemented. Sparse experts, SSM/Mamba, retrieval, tools, and later modules remain outside this phase.
+
 A Hebbian-style candidate may update a temporary matrix:
 
 ```text

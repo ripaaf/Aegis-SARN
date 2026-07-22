@@ -1,6 +1,6 @@
 # Toy Dataset Cards
 
-These cards describe the generated toy datasets used by the SARN-Dense Phase 1-6 harness. They are engineering fixtures for correctness, reproducibility, task-level evaluation, scaling, attention, latent-workspace, and graph-control comparisons. They are not real language or reasoning benchmarks and should be replaced before any capability claim.
+These cards describe the generated toy datasets used by the SARN-Dense Phase 1-7 harness. They are engineering fixtures for correctness, reproducibility, task-level evaluation, scaling, attention, latent-workspace, graph-control, and resettable-memory comparisons. They are not real language, reasoning, or useful-memory benchmarks and should be replaced before any capability claim.
 
 SARN-Dense is the baseline/control for these fixtures, not a useful natural-language model.
 
@@ -109,9 +109,52 @@ SARN-Dense is the baseline/control for these fixtures, not a useful natural-lang
 - Train/eval split: both route length and seeded node identities differ by split.
 - Limitations: the shift is tiny, the sweep smoke trainer does not train directly on this task, and metrics cannot support a generalization or reasoning claim.
 
+## toy/key_value_recall
+
+- Purpose: exercise a minimal key/value binding followed by a query for the same key.
+- Generation method: a seeded key and value are placed around fixed bind, query, and answer markers; the short pattern repeats to the requested sequence length.
+- Train/eval split: split-specific seed offsets select different deterministic key/value examples.
+- Limitations: the syntax and token ranges are fixed, the sequence is tiny and repetitive, and success is not evidence of useful, long-term, user, or human-like memory.
+
+## toy/distractor_recall
+
+- Purpose: place a short deterministic gap between a key/value binding and its query.
+- Generation method: seeded filler tokens are inserted after one binding and before the fixed query/answer markers.
+- Train/eval split: split-specific seed offsets change the binding and distractors.
+- Limitations: only four distractors and one binding are used; the fixture does not measure realistic retention or language understanding.
+
+## toy/reset_isolation
+
+- Purpose: expose cross-row contamination by assigning the same key conflicting values in alternating batch rows.
+- Generation method: each row contains its own binding/query pattern while sharing a seeded key; adjacent rows use different target values.
+- Train/eval split: split-specific seed offsets change the shared key and initial value.
+- Limitations: task loss alone does not prove runtime isolation, so Phase 7 also runs an independent-call state equality probe. Neither check covers persistent services, because none are implemented.
+
+## toy/overwrite_conflict
+
+- Purpose: test a defined last-write target after one key is assigned an old value and then a new value.
+- Generation method: a seeded key receives two fixed-format bindings; the query target is the second value.
+- Train/eval split: split-specific seed offsets select the key and values.
+- Limitations: the overwrite rule is explicit and tiny, not a general conflict-resolution policy or persistent-memory behavior.
+
+## toy/capacity_stress
+
+- Purpose: provide four simultaneous bindings near the default four-slot Phase 7 memory budget.
+- Generation method: seeded permutations choose four keys and values, followed by a query for one selected pair.
+- Train/eval split: split-specific seed offsets change permutations and the selected target.
+- Limitations: matching the default slot count does not demonstrate learned slot allocation, scalable capacity, or reliable memory outside this synthetic format.
+
+## toy/delayed_copy
+
+- Purpose: require one early value token to be emitted again after a short filler interval.
+- Generation method: a seeded value is followed by six seeded filler tokens and fixed query/answer markers before the repeated value.
+- Train/eval split: split-specific seed offsets change the value and filler tokens.
+- Limitations: the delay is short and the output rule is fixed; success would not establish general recall or natural-language capability.
+
 ## Governance Notes
 
 - All toy datasets are generated locally and require no network access.
 - Metrics from these datasets are suitable for regression tests, scaling sweeps, and reproducibility checks only.
 - Reports must state that toy-byte generation is not useful natural-language output.
+- Phase 7 reports must state that memory fixtures and reset diagnostics do not establish persistent, user, long-term, or human-like memory.
 - Future datasets should include source, license, preprocessing, split policy, deduplication, contamination checks, and intended replacement criteria.

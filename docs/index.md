@@ -26,7 +26,7 @@ This is the authoritative navigation page. Documents are split by responsibility
 ## Building and Training
 
 - [Data](data.md) — dataset governance, mixtures, processing, and contamination controls
-- [Phase 2-6 toy dataset cards](datasets.md) — generated-fixture provenance, scope, and limitations
+- [Phase 2-7 toy dataset cards](datasets.md) — generated-fixture provenance, scope, and limitations
 - [SARN-Dense model card](model-card-sarn-dense.md) — baseline/control capabilities and limitations
 - [Training](training.md) — stages, objectives, checkpoints, optimizer studies, and reproducibility
 - [Development workflow](development.md) — implementation standards, testing, experiments, and contribution flow
@@ -49,4 +49,4 @@ This is the authoritative navigation page. Documents are split by responsibility
 - **Accepted**: passed its stated evidence gate.
 - **Rejected**: tested and not adopted; results remain documented.
 
-Phases 1-6 are implemented and verified on CPU through the SARN-Dense research harness. MHA remains the default; GQA, the bounded latent workspace, and graph message passing over workspace slots are experimental and configurable, with workspace and graph disabled by default. SARN-Dense remains the only complete implemented model path. Resettable/persistent working memory, SARN-Hybrid, and later mechanisms remain proposed rather than implemented.
+Phases 1-7 are implemented and verified on CPU through the SARN-Dense research harness. MHA remains the default; GQA, the bounded latent workspace, graph message passing, and resettable working memory are experimental and configurable, with workspace, graph, and memory disabled by default. Phase 7 memory is bounded temporary cache state only. SARN-Dense remains the only complete implemented model path; persistent memory, retrieval, Phase 8+ mechanisms, and SARN-Hybrid remain unimplemented.

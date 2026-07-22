@@ -63,6 +63,17 @@ GRAPH_MANIFEST_FIELDS = frozenset(
         'graph_variant_name',
     }
 )
+MEMORY_MANIFEST_FIELDS = frozenset(
+    {
+        'memory_enabled',
+        'memory_num_slots',
+        'memory_write_mode',
+        'memory_read_mode',
+        'memory_reset_mode',
+        'memory_decay',
+        'memory_variant_name',
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -907,6 +918,157 @@ def check_gates(
                         missing = ['unreadable']
                     add(
                         f'{name}:{manifest_name}_graph_fields',
+                        not missing,
+                        'ok' if not missing else ', '.join(missing),
+                    )
+
+    if summary.get('command') == 'sweep-memory':
+        completed = [item for item in items if item.get('status') == 'completed']
+        dense_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'dense-control'
+            and item.get('memory_enabled') is False
+        ]
+        workspace_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'workspace-control'
+            and item.get('workspace_enabled') is True
+            and item.get('memory_enabled') is False
+        ]
+        graph_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'graph-control'
+            and item.get('graph_enabled') is True
+            and item.get('memory_enabled') is False
+        ]
+        memory_items = [
+            item for item in completed if item.get('memory_enabled') is True
+        ]
+        add(
+            'memory:all_variants_completed',
+            len(completed) == len(items),
+            f'{len(completed)} of {len(items)} completed',
+        )
+        add(
+            'memory:dense_control_present',
+            bool(dense_controls),
+            f'{len(dense_controls)} completed dense control(s)',
+        )
+        add(
+            'memory:workspace_control_present',
+            bool(workspace_controls),
+            f'{len(workspace_controls)} completed workspace control(s)',
+        )
+        add(
+            'memory:graph_control_present',
+            bool(graph_controls),
+            f'{len(graph_controls)} completed graph control(s)',
+        )
+        add(
+            'memory:enabled_variant_present',
+            bool(memory_items),
+            f'{len(memory_items)} completed memory variant(s)',
+        )
+        add(
+            'memory:null_control_present',
+            any(
+                item.get('config_name') == 'memory-null'
+                for item in memory_items
+            ),
+            'memory-null control required',
+        )
+        missing_summary_memory = sorted(
+            MEMORY_MANIFEST_FIELDS - set(summary)
+        )
+        add(
+            'memory:summary_metadata_present',
+            not missing_summary_memory,
+            'ok'
+            if not missing_summary_memory
+            else ', '.join(missing_summary_memory),
+        )
+
+        for item in completed:
+            name = str(item.get('config_name') or 'memory')
+            missing_item_fields = sorted(
+                MEMORY_MANIFEST_FIELDS - set(item)
+            )
+            add(
+                f'{name}:memory_metadata_present',
+                not missing_item_fields,
+                'ok' if not missing_item_fields else ', '.join(missing_item_fields),
+            )
+            add(
+                f'{name}:memory_task_metrics_present',
+                isinstance(item.get('memory_task_metrics'), list)
+                and bool(item.get('memory_task_metrics')),
+                str(len(item.get('memory_task_metrics') or [])),
+            )
+            for metric_name in (
+                'memory_task_eval_loss',
+                'memory_task_perplexity',
+                'memory_task_token_accuracy',
+            ):
+                value = item.get(metric_name)
+                add(
+                    f'{name}:{metric_name}_finite',
+                    _is_finite_number(value),
+                    str(value),
+                )
+            memory_parameters = item.get('memory_parameter_count')
+            memory_enabled = item.get('memory_enabled') is True
+            add(
+                f'{name}:memory_parameter_count_valid',
+                _is_finite_number(memory_parameters)
+                and float(memory_parameters) >= 0
+                and (not memory_enabled or float(memory_parameters) > 0),
+                str(memory_parameters),
+            )
+            if memory_enabled:
+                add(
+                    f'{name}:workspace_required',
+                    item.get('workspace_enabled') is True,
+                    str(item.get('workspace_enabled')),
+                )
+                slots = item.get('memory_num_slots')
+                add(
+                    f'{name}:memory_num_slots_positive',
+                    _is_finite_number(slots) and float(slots) > 0,
+                    str(slots),
+                )
+                add(
+                    f'{name}:reset_isolation_passed',
+                    item.get('memory_reset_isolation_passed') is True,
+                    str(item.get('memory_reset_isolation_passed')),
+                )
+                for metric_name in (
+                    'memory_gate_mean',
+                    'memory_norm',
+                    'memory_write_norm',
+                ):
+                    value = item.get(metric_name)
+                    add(
+                        f'{name}:{metric_name}_finite',
+                        _is_finite_number(value),
+                        str(value),
+                    )
+
+            manifest_paths = item.get('manifest_paths') or {}
+            for manifest_name, manifest_path in manifest_paths.items():
+                path = Path(str(manifest_path))
+                if path.exists() and path.name.endswith('.json'):
+                    try:
+                        manifest = _load_manifest(path)
+                        missing = sorted(
+                            MEMORY_MANIFEST_FIELDS - set(manifest)
+                        )
+                    except (OSError, json.JSONDecodeError):
+                        missing = ['unreadable']
+                    add(
+                        f'{name}:{manifest_name}_memory_fields',
                         not missing,
                         'ok' if not missing else ', '.join(missing),
                     )

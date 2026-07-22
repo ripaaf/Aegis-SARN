@@ -331,7 +331,6 @@ def test_phase6_cli_help_docs_and_scope(
     assert 'graph is disabled by default' in readme.lower()
 
     forbidden_modules = (
-        'memory.py',
         'moe.py',
         'ssm.py',
         'retrieval.py',

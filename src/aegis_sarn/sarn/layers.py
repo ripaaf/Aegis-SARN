@@ -17,6 +17,7 @@ class KVCache:
     key: Tensor
     value: Tensor
     workspace_slots: Tensor | None = None
+    memory_slots: Tensor | None = None
 
     def __post_init__(self) -> None:
         if self.key.ndim != 4 or self.value.ndim != 4:
@@ -37,6 +38,18 @@ class KVCache:
                 or self.workspace_slots.dtype != self.key.dtype
             ):
                 raise ValueError('workspace cache device/dtype must match KV cache')
+        if self.memory_slots is not None:
+            if self.memory_slots.ndim != 3:
+                raise ValueError(
+                    'memory cache must have [batch, slots, model_dimension]'
+                )
+            if self.memory_slots.shape[0] != self.key.shape[0]:
+                raise ValueError('memory cache batch size must match KV cache')
+            if (
+                self.memory_slots.device != self.key.device
+                or self.memory_slots.dtype != self.key.dtype
+            ):
+                raise ValueError('memory cache device/dtype must match KV cache')
 
     @property
     def sequence_length(self) -> int:

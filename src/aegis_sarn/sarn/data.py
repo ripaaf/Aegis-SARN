@@ -292,6 +292,177 @@ def length_extrapolation_batch(
     )
 
 
+def key_value_recall_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    bind_token, query_token, answer_token = 24, 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        key = int(torch.randint(1, 8, (1,), generator=generator).item())
+        value = int(torch.randint(10, 18, (1,), generator=generator).item())
+        pattern = [
+            key, bind_token, value, query_token, key, answer_token, value
+        ]
+        rows.append(torch.tensor(_repeat_to_length(pattern, sequence_length + 1)))
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'key_value_recall')
+
+
+def distractor_recall_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    bind_token, query_token, answer_token = 24, 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        key = int(torch.randint(1, 8, (1,), generator=generator).item())
+        value = int(torch.randint(10, 18, (1,), generator=generator).item())
+        distractors = torch.randint(
+            18, 24, (4,), generator=generator
+        ).tolist()
+        pattern = [
+            key,
+            bind_token,
+            value,
+            *(int(item) for item in distractors),
+            query_token,
+            key,
+            answer_token,
+            value,
+        ]
+        rows.append(torch.tensor(_repeat_to_length(pattern, sequence_length + 1)))
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'distractor_recall')
+
+
+def reset_isolation_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    bind_token, query_token, answer_token = 24, 25, 26
+    shared_key = int(torch.randint(1, 8, (1,), generator=generator).item())
+    first_value = int(
+        torch.randint(10, 14, (1,), generator=generator).item()
+    )
+    rows: list[Tensor] = []
+    for index in range(batch_size):
+        value = first_value + (index % 2)
+        pattern = [
+            shared_key,
+            bind_token,
+            value,
+            query_token,
+            shared_key,
+            answer_token,
+            value,
+        ]
+        rows.append(torch.tensor(_repeat_to_length(pattern, sequence_length + 1)))
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'reset_isolation')
+
+
+def overwrite_conflict_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    bind_token, query_token, answer_token = 24, 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        key = int(torch.randint(1, 8, (1,), generator=generator).item())
+        old_value = int(
+            torch.randint(10, 14, (1,), generator=generator).item()
+        )
+        new_value = old_value + 4
+        pattern = [
+            key,
+            bind_token,
+            old_value,
+            key,
+            bind_token,
+            new_value,
+            query_token,
+            key,
+            answer_token,
+            new_value,
+        ]
+        rows.append(torch.tensor(_repeat_to_length(pattern, sequence_length + 1)))
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'overwrite_conflict')
+
+
+def capacity_stress_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    bind_token, query_token, answer_token = 24, 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        keys = (torch.randperm(6, generator=generator)[:4] + 1).tolist()
+        values = (torch.randperm(6, generator=generator)[:4] + 10).tolist()
+        target = int(torch.randint(0, 4, (1,), generator=generator).item())
+        pattern: list[int] = []
+        for key, value in zip(keys, values, strict=True):
+            pattern.extend([int(key), bind_token, int(value)])
+        pattern.extend(
+            [query_token, int(keys[target]), answer_token, int(values[target])]
+        )
+        rows.append(torch.tensor(_repeat_to_length(pattern, sequence_length + 1)))
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'capacity_stress')
+
+
+def delayed_copy_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    query_token, answer_token = 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        value = int(torch.randint(1, 10, (1,), generator=generator).item())
+        fillers = torch.randint(18, 24, (6,), generator=generator).tolist()
+        pattern = [
+            value,
+            *(int(item) for item in fillers),
+            query_token,
+            answer_token,
+            value,
+        ]
+        rows.append(torch.tensor(_repeat_to_length(pattern, sequence_length + 1)))
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'delayed_copy')
+
+
 def toy_text_batch(
     batch_size: int = 8,
     sequence_length: int = 32,
@@ -330,6 +501,12 @@ TOY_TASK_FACTORIES: dict[str, TaskFactory] = {
     'route_propagation': route_propagation_batch,
     'slot_binding': slot_binding_batch,
     'length_extrapolation': length_extrapolation_batch,
+    'key_value_recall': key_value_recall_batch,
+    'distractor_recall': distractor_recall_batch,
+    'reset_isolation': reset_isolation_batch,
+    'overwrite_conflict': overwrite_conflict_batch,
+    'capacity_stress': capacity_stress_batch,
+    'delayed_copy': delayed_copy_batch,
 }
 
 
@@ -339,6 +516,14 @@ GRAPH_TASK_NAMES = (
     'route_propagation',
     'slot_binding',
     'length_extrapolation',
+)
+MEMORY_TASK_NAMES = (
+    'key_value_recall',
+    'distractor_recall',
+    'reset_isolation',
+    'overwrite_conflict',
+    'capacity_stress',
+    'delayed_copy',
 )
 
 

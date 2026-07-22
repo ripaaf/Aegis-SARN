@@ -7,17 +7,17 @@ This matrix prevents ideas from disappearing or quietly becoming commitments. â€
 | GPT-style causal modeling | baseline | accepted baseline | SARN-Dense next-token model | 1 | loss, generation, correctness invariants | accepted baseline |
 | Transformer | baseline architecture | accepted baseline | attention + FFN decoder blocks | 1 | reproducible control results | accepted baseline |
 | RoPE | model technique | core spine | attention query/key position encoding | 1 | implementation tests; context behavior | accepted baseline |
-| grouped-query attention | model experiment | core spine | efficient attention foundation | 3 | cache, latency, quality Pareto | proposed |
-| local attention | model experiment | optional accelerator | bounded/local sequence interactions | 8 | long-context quality, latency, lost-global-information tests | proposed |
-| linear attention | model experiment | optional accelerator | approximate/structured attention alternative | 8 | quality, stability, realized hardware cost | future experiment |
-| Mamba/selective SSM | model experiment | optional accelerator | attention alternative/hybrid | 8 | workload-specific quality, memory, speed | proposed |
-| MoE/Switch-style routing | model experiment | optional accelerator | selected FFN replacements | 7 | load balance, quality per active cost, total memory | proposed, later-scale |
+| grouped-query attention | model experiment | core spine | efficient attention foundation | 4 | cache, latency, quality Pareto | experimental; MHA default |
+| local attention | model experiment | optional accelerator | bounded/local sequence interactions | 9 | long-context quality, latency, lost-global-information tests | proposed |
+| linear attention | model experiment | optional accelerator | approximate/structured attention alternative | 9 | quality, stability, realized hardware cost | future experiment |
+| Mamba/selective SSM | model experiment | optional accelerator | attention alternative/hybrid | 9 | workload-specific quality, memory, speed | proposed |
+| MoE/Switch-style routing | model experiment | optional accelerator | selected FFN replacements | 8 | load balance, quality per active cost, total memory | proposed, later-scale |
 | latent workspace | research hypothesis | core spine | bounded latent workspace slots | 5 | structural generalization and causal semantics | experimental; neutral slot naming |
 | latent-slot graph | research hypothesis | core spine | message passing among workspace slots | 6 | equal-compute/null-edge/frozen-edge ablations | experimental; disabled by default |
 | gated writeback | model mechanism | core spine | controlled workspace residual into token states | 5â€“6 | stability, gate use, no-writeback and MLP controls | experimental |
-| top-k competition/inhibition | model experiment | core spine | workspace/expert sparsity | 4/7 | stability, sparsity, quality, gradients | proposed |
+| top-k competition/inhibition | model experiment | core spine | workspace/expert sparsity | 5/8 | stability, sparsity, quality, gradients | proposed |
 | belief propagation | terminology/method | research phenomenon | only if a defined probabilistic graphical model exists | unscheduled | calibration and correct probabilistic semantics | not currently claimed |
-| Hebbian/fast-weight memory | model experiment | core spine | resettable neural working memory | 6 | capacity, conflict, reset, leakage, baseline gain | proposed |
+| resettable slot/fast-weight memory | model experiment | core spine | bounded temporary neural working memory | 7 | capacity, conflict, reset, leakage, baseline gain | experimental; disabled by default |
 | verifier hooks | model/runtime interface | core spine | typed candidate and instrumentation interface | 10 | hook faithfulness, schema stability, no authorization bypass | planned |
 | RAG | framework technique | framework component | retrieval service + typed evidence | 9 | retrieval, answer, citation, injection metrics | planned |
 | persistent user memory | framework component | framework component | governed cross-session records | 9 | authorization, correction, deletion, isolation | planned |

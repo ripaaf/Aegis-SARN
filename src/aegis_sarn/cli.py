@@ -24,6 +24,7 @@ from aegis_sarn.phase3 import check_gates, compare_baselines, run_baseline_sweep
 from aegis_sarn.phase4 import compare_attention, run_attention_sweep
 from aegis_sarn.phase5 import compare_workspace, run_workspace_sweep
 from aegis_sarn.phase6 import compare_graph, run_graph_sweep
+from aegis_sarn.phase7 import compare_memory, run_memory_sweep
 from aegis_sarn.registry import record_manifest, registry_entries
 from aegis_sarn.reporting import write_baseline_report
 from aegis_sarn.sarn.checkpoint import load_checkpoint
@@ -193,6 +194,25 @@ def _parser() -> argparse.ArgumentParser:
     train_parser.add_argument('--graph-no-gated-update', action='store_true')
     train_parser.add_argument('--graph-residual-scale', type=float, default=1.0)
     train_parser.add_argument('--graph-dropout', type=float, default=0.0)
+    train_parser.add_argument('--memory-enabled', action='store_true')
+    train_parser.add_argument('--memory-num-slots', type=int, default=0)
+    train_parser.add_argument(
+        '--memory-write-mode',
+        choices=('none', 'gated', 'hebbian_like'),
+        default='none',
+    )
+    train_parser.add_argument(
+        '--memory-read-mode',
+        choices=('none', 'attention', 'slot_mix'),
+        default='none',
+    )
+    train_parser.add_argument(
+        '--memory-reset-mode',
+        choices=('per_forward', 'per_generation', 'manual'),
+        default='per_generation',
+    )
+    train_parser.add_argument('--memory-decay', type=float, default=0.0)
+    train_parser.add_argument('--memory-no-gated-write', action='store_true')
     train_parser.add_argument('--learning-rate', type=float, default=5e-3)
     train_parser.add_argument('--seed', type=int, default=7)
     train_parser.add_argument('--device', default='cpu')
@@ -373,6 +393,33 @@ def _parser() -> argparse.ArgumentParser:
     )
     graph_compare_parser.add_argument('--json', action='store_true')
 
+    memory_sweep_parser = subparsers.add_parser(
+        'sweep-memory',
+        help='compare matched Phase 7 resettable-memory controls',
+    )
+    memory_sweep_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/phase7-memory')
+    )
+    memory_sweep_parser.add_argument('--device', default='cpu')
+    memory_sweep_parser.add_argument('--seed', type=int, default=123)
+    memory_sweep_parser.add_argument('--train-steps', type=int, default=8)
+    memory_sweep_parser.add_argument('--batch-size', type=int, default=2)
+    memory_sweep_parser.add_argument('--sequence-length', type=int, default=16)
+    memory_sweep_parser.add_argument('--max-new-tokens', type=int, default=2)
+    memory_sweep_parser.add_argument('--bench-repeats', type=int, default=1)
+    memory_sweep_parser.add_argument('--json', action='store_true')
+
+    memory_compare_parser = subparsers.add_parser(
+        'compare-memory', help='compare Phase 7 memory sweep outputs'
+    )
+    memory_compare_parser.add_argument(
+        '--input', type=Path, default=Path('artifacts/phase7-memory')
+    )
+    memory_compare_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/reports')
+    )
+    memory_compare_parser.add_argument('--json', action='store_true')
+
     gates_parser = subparsers.add_parser(
         'check-gates', help='check basic experiment quality gates'
     )
@@ -473,6 +520,13 @@ def _train_command(arguments: argparse.Namespace) -> int:
         graph_gated_update=not arguments.graph_no_gated_update,
         graph_residual_scale=arguments.graph_residual_scale,
         graph_dropout=arguments.graph_dropout,
+        memory_enabled=arguments.memory_enabled,
+        memory_num_slots=arguments.memory_num_slots,
+        memory_write_mode=arguments.memory_write_mode,
+        memory_read_mode=arguments.memory_read_mode,
+        memory_reset_mode=arguments.memory_reset_mode,
+        memory_decay=arguments.memory_decay,
+        memory_gated_write=not arguments.memory_no_gated_write,
     )
     training_config = TrainingConfig(
         learning_rate=arguments.learning_rate,
@@ -1053,6 +1107,58 @@ def _compare_graph_command(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _sweep_memory_command(arguments: argparse.Namespace) -> int:
+    summary = run_memory_sweep(
+        output_dir=arguments.output_dir,
+        device=arguments.device,
+        seed=arguments.seed,
+        train_steps=arguments.train_steps,
+        batch_size=arguments.batch_size,
+        sequence_length=arguments.sequence_length,
+        max_new_tokens=arguments.max_new_tokens,
+        bench_repeats=arguments.bench_repeats,
+    )
+    payload = {
+        'run_id': summary['run_id'],
+        'summary_json_path': summary['artifacts']['summary_json'],
+        'summary_markdown_path': summary['artifacts']['summary_markdown'],
+        'registry_path': summary['artifacts']['registry'],
+        'metrics': summary['metrics'],
+        'results': summary['results'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense memory sweep completed')
+        print('  variants: {}'.format(summary['metrics']['config_count']))
+        print('  summary: {}'.format(summary['artifacts']['summary_json']))
+        print('  markdown: {}'.format(summary['artifacts']['summary_markdown']))
+        print('  registry: {}'.format(summary['artifacts']['registry']))
+    return 0
+
+
+def _compare_memory_command(arguments: argparse.Namespace) -> int:
+    summary = compare_memory(arguments.input, arguments.output_dir)
+    payload = {
+        'run_id': summary['run_id'],
+        'comparison_json_path': summary['artifacts']['comparison_json'],
+        'comparison_markdown_path': summary['artifacts']['comparison_markdown'],
+        'winners': summary['winners'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense memory comparison generated')
+        print('  markdown: {}'.format(summary['artifacts']['comparison_markdown']))
+        print('  json: {}'.format(summary['artifacts']['comparison_json']))
+        print(
+            '  balanced memory: {}'.format(
+                summary['winners']['best_balanced_memory']['config_name']
+            )
+        )
+    return 0
+
+
 def _check_gates_command(arguments: argparse.Namespace) -> int:
     result = check_gates(
         summary_path=arguments.summary,
@@ -1107,6 +1213,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _sweep_graph_command(arguments)
     if arguments.command == 'compare-graph':
         return _compare_graph_command(arguments)
+    if arguments.command == 'sweep-memory':
+        return _sweep_memory_command(arguments)
+    if arguments.command == 'compare-memory':
+        return _compare_memory_command(arguments)
     if arguments.command == 'check-gates':
         return _check_gates_command(arguments)
     raise AssertionError(f'unhandled command: {arguments.command}')

@@ -98,7 +98,7 @@ def _workspace_sweep_markdown(summary: dict[str, Any]) -> str:
             '- Latent slots are learned tensor states, not human-like concepts.',
             '- This prototype is neither graph message passing nor persistent memory.',
             '- This Phase 5 artifact does not exercise the separate Phase 6 graph path.',
-            '- SARN-Hybrid and Phase 7+ mechanisms are not implemented here.',
+            '- Later graph and memory mechanisms are outside this Phase 5 comparison.',
         ]
     )
     return '\n'.join(lines) + '\n'
@@ -439,7 +439,7 @@ def compare_workspace(input_dir: Path, output_dir: Path) -> dict[str, Any]:
                 'Workspace slot count and writeback are the controlled variables.',
                 'Toy metrics do not demonstrate reasoning, concepts, or memory.',
                 'The separate Phase 6 graph path is not exercised by this report.',
-                'SARN-Hybrid and Phase 7+ modules remain unimplemented.',
+                'SARN-Hybrid and later modules are not evaluated by this Phase 5 report.',
             ],
         }
     )

@@ -154,7 +154,7 @@ def _render_markdown(summary: dict[str, Any]) -> str:
 
 Generated at: {summary['generated_at']}
 
-SARN-Dense is the control baseline for this repository. This report does not claim that SARN-Hybrid, MoE, graph workspace, working memory, SSM, retrieval, tools, VLM, SAM, LAM, or multimodal modules are implemented.
+SARN-Dense is the control baseline for this repository. This Phase 2 report evaluates only that dense baseline and makes no claim about SARN-Hybrid or later graph, memory, MoE, SSM, retrieval, tool, or multimodal mechanisms.
 
 ## Model
 

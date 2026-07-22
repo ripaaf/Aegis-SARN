@@ -34,7 +34,9 @@ Summaries are model-generated derived data and retain links to source turns. The
 
 ## 3. Neural Working Memory
 
-The SARN working-memory experiment is:
+Phase 7 implements a limited subset of this track: fixed-size neural slots behind an explicit feature flag, after the enabled latent workspace and optional graph. State is a caller-visible tensor carried in the generation cache, not a module-global value or stored record. A call without the tensor starts empty, so independent runs reset by construction. The implementation is disabled by default and does not mutate released weights during serving.
+
+This prototype is not persistent or user memory, retrieval, self-learning, or a memory service. The broader SARN working-memory experiment requires state that is:
 
 - allocated empty at run or session start;
 - isolated across concurrent users and batch rows;
@@ -44,7 +46,7 @@ The SARN working-memory experiment is:
 - explicitly reset;
 - never serialized as long-term memory by default.
 
-Evaluation covers exact association recall, capacity curves, recency, interference, conflicting updates, distractors, reset completeness, poisoned writes, and information leakage. It must be compared with simply providing the same facts in token context and with an Aegis key/value store.
+Phase 7 covers deterministic key/value, distractor, overwrite, tiny capacity, delayed-copy, batch-row, and independent-call reset/isolation checks. The complete workstream must later add recency curves, poisoned-write evaluation, stronger information-leakage tests, and comparisons with the same facts in token context and an Aegis key/value store. Those later tests and services are not implemented by Phase 7.
 
 ## 4. Persistent Memory
 

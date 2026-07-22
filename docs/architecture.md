@@ -123,7 +123,31 @@ tokens -> SARN-Dense blocks -> bounded latent slots
 
 The graph is disabled by default, requires an enabled workspace, and updates only the bounded latent slot tensor. It has no persistent store, reset operation, online weight update, retrieval call, tool path, policy authority, or side effect. Aegis continues to own runtime governance, permissions, tools, external memory, and effects. This isolated module does not make SARN-Hybrid implemented or establish formal or human-like reasoning.
 
-### 3.4 Long-Term SARN-Hybrid Path
+### 3.4 Phase 7 Experimental Working-Memory Path
+
+~~~text
+default:
+tokens -> SARN-Dense blocks -> final normalization -> decoder head
+
+Phase 5 workspace:
+tokens -> SARN-Dense blocks -> bounded latent slots
+       -> gated writeback -> final normalization -> decoder head
+
+Phase 6 graph:
+tokens -> SARN-Dense blocks -> bounded latent slots
+       -> fixed-count graph message-passing cycles
+       -> gated writeback -> final normalization -> decoder head
+
+Phase 7 memory:
+tokens -> SARN-Dense blocks -> bounded latent slots
+       -> optional graph message-passing cycles
+       -> resettable bounded working-memory read/write
+       -> gated workspace writeback -> final normalization -> decoder head
+~~~
+
+Phase 7 memory is learned tensor computation only. It is disabled by default and carried only in an explicit run-local generation cache; independent calls start from zero unless the caller intentionally passes that cache. No persistent memory is written, no retrieval or tool use is enabled, and no base model weight is updated during serving. Aegis still owns runtime policy, persistent memory, permissions, tools, retrieval, and side effects. This prototype does not make SARN-Hybrid implemented.
+
+### 3.5 Long-Term SARN-Hybrid Path
 
 ```text
 Aegis Runtime
@@ -146,7 +170,7 @@ Aegis Runtime
 
 This diagram is the declared SARN-Hybrid construction target, not a claim of present implementation or success. Core stages and optional accelerators remain independently configurable and ablatable. A dense/attention-only route stays available for controls and hardware fallback. Full details are in [SARN model](model.md).
 
-### 3.4 Ownership Boundary
+### 3.6 Ownership Boundary
 
 SARN-Hybrid may emit logits, structured call proposals, latent-state summaries, uncertainty-related signals, and instrumentation hooks. It may update only bounded run/session neural state allocated by Aegis. It cannot commit persistent memory, execute tools, acquire resources, alter policy, or decide that a verifier passed.
 

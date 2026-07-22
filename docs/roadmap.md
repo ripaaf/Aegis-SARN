@@ -2,7 +2,7 @@
 
 ## 1. Roadmap Rules
 
-This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–6 build and qualify the SARN-Dense control, evaluation laboratory, efficient-attention foundation, feature-flagged latent workspace, and bounded graph prototype. Phases 7–9 construct and test later proposed SARN-Hybrid mechanisms; Phases 10–16 add governed system capabilities; Phases 17–18 are integration gates. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
+This roadmap is ordered by dependency and evidence, not by how advanced a technique sounds. Phases 1–7 build and qualify the SARN-Dense control, evaluation laboratory, efficient-attention foundation, feature-flagged latent workspace, bounded graph prototype, and resettable working-memory prototype. Phases 8–9 test later proposed SARN-Hybrid mechanisms; Phases 10–16 add governed system capabilities; Phases 17–18 are integration gates. Framework and model tracks can advance in parallel after their shared contracts exist. A phase may end in a documented rejection; rejected mechanisms are replaced by their controls rather than forced into the integrated architecture.
 
 No calendar dates are assigned until maintainers declare people, hardware, data, and budget. Each phase receives an issue set, owner, estimate, and frozen exit metrics when scheduled.
 
@@ -15,10 +15,11 @@ No calendar dates are assigned until maintainers declare people, hardware, data,
 - **Phase 4 efficient attention foundation:** implemented within SARN-Dense with MHA retained as the default/control, configurable experimental GQA, reduced stored KV-head/cache shapes, matched attention sweeps, comparison reports, attention metadata, checkpoint compatibility, and Phase 4 gates.
 - **Phase 5 latent workspace prototype:** implemented behind disabled-by-default SARN-Dense configuration with bounded causal slots, token routing, optional gated writeback, transient cache state, diagnostics, an exact no-writeback control, workspace sweeps/comparisons, and correctness-oriented gates.
 - **Phase 6 graph message-passing prototype:** implemented behind disabled-by-default SARN-Dense configuration and an enabled Phase 5 workspace. It provides bounded cycles, no-op/learned/frozen/shuffled edge modes, optional top-k sparsity, gated residual updates, causal cache parity, graph diagnostics, structural fixtures, matched controls, sweep/comparison reports, and correctness-oriented gates.
-- **Acceptance workflow:** the documented CPU path installs, tests, reproduces earlier phases, sweeps matched dense, MHA/GQA, workspace, and graph variants, benchmarks generation and resource cost, records registry entries, compares results, checks quality gates, and generates reports while preserving structured metrics and traces.
-- **Later phases:** Phase 7 is next/planned. No resettable working memory, full SARN-Hybrid model path, MoE, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, advanced safety system, or multimodal implementation has started.
+- **Phase 7 resettable working-memory prototype:** implemented behind disabled-by-default SARN-Dense configuration and an enabled Phase 5 workspace. It provides bounded explicit-cache slots, gated or Hebbian-like writes, attention or slot-mix reads, per-forward/per-generation/manual reset semantics, cached-generation parity, reset/isolation probes, six deterministic memory fixtures, matched dense/workspace/graph/null controls, diagnostics, sweep/comparison reports, and correctness-oriented gates.
+- **Acceptance workflow:** the documented CPU path installs, tests, reproduces earlier phases, sweeps matched dense, MHA/GQA, workspace, graph, and memory variants, benchmarks generation and resource cost, records registry entries, compares results, checks correctness and quality gates, and generates reports while preserving structured metrics and traces.
+- **Later phases:** Phase 8 sparse expert routing is next/planned. No full SARN-Hybrid model path, MoE, SSM/Mamba, persistent memory, retrieval, tools, VLM, SAM, LAM, advanced safety system, or multimodal implementation has started.
 
-This progress note records the verified Phase 1-6 SARN-Dense research contract. Phase 6 adds bounded graph message passing over transient workspace slots and a matched evidence path inside SARN-Dense; it does not implement resettable/persistent memory, formal logic, human-like reasoning, or SARN-Hybrid. All later model and system mechanisms remain proposals until their evidence gates pass.
+This progress note records the verified Phase 1-7 SARN-Dense research contract. Phase 7 adds bounded temporary state through explicit cache tensors and a matched evidence path inside SARN-Dense; it does not implement persistent or user memory, retrieval, online weight mutation, self-learning, human-like memory, or SARN-Hybrid. Implementing the prototype and its correctness gates does not accept it into a final architecture. All later model and system mechanisms remain proposals until their evidence gates pass.
 
 ## Canonical Aegis-X Roadmap
 
@@ -106,7 +107,7 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 
 **Exit gate:** a variant passes the [benchmark acceptance gates](benchmarks.md), including held-out structural shifts and multi-seed evidence, or the hypothesis is narrowed/rejected. No human-concept claim is accepted without causal interpretability evidence.
 
-**Current implementation:** Phase 5 provides the bounded latent workspace and gated writeback. Phase 6 adds configurable bounded graph cycles over those slots, with dense/workspace-only/null-edge/frozen-identity/learned-edge controls and optional top-k sparse edges. Both modules remain experimental and disabled by default. Resettable working memory and human-concept interpretations are not implemented, and the graph hypothesis is not accepted merely because its mechanism and measurement path exist.
+**Current implementation:** Phase 5 provides the bounded latent workspace and gated writeback. Phase 6 adds configurable bounded graph cycles over those slots, with dense/workspace-only/null-edge/frozen-identity/learned-edge controls and optional top-k sparse edges. Both modules remain experimental and disabled by default. Human-concept interpretations are not implemented, and the graph hypothesis is not accepted merely because its mechanism and measurement path exist.
 
 ### Workstream G — Resettable Working Memory Core
 
@@ -115,6 +116,8 @@ These phases construct one compatible hybrid model spine. Each phase first prove
 **Deliverables:** at least one simple key/value control; one neural or fast-weight mechanism; optional Hebbian-style update; strict allocation/reset/isolation; conflict, capacity, poisoning, and leakage evaluations; Aegis lifecycle integration.
 
 **Exit gate:** improvement over both token-context and simple external-memory controls at matched budget, with complete reset and no cross-session leakage. Otherwise prefer the simpler framework memory.
+
+**Current implementation:** Phase 7 provides one bounded explicit-slot neural prototype after the workspace and optional graph. State is carried only by a caller-supplied cache, independent calls reset, and serving does not mutate weights or write persistent data. Dense/workspace/graph/null-memory controls, deterministic capacity/conflict/reset fixtures, diagnostics, sweeps, reports, and correctness gates are implemented. Toy results do not satisfy the full workstream exit gate or establish a useful, long-term, user, or human-like memory capability.
 
 ### Workstream H — Hybrid Sequence Engine
 

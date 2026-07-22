@@ -106,6 +106,7 @@ def evaluate_toy(
         }
         metrics.update(model.workspace_metrics())
         metrics.update(model.graph_metrics())
+        metrics.update(model.memory_metrics())
         trace.emit(
             'generation.completed',
             'eval.toy',

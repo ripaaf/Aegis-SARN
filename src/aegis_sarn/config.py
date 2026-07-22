@@ -45,6 +45,17 @@ class ModelConfig:
     graph_residual_scale: float = 1.0
     graph_dropout: float = 0.0
     graph_after_workspace: bool = True
+    memory_enabled: bool = False
+    memory_num_slots: int = 0
+    memory_write_mode: Literal['none', 'gated', 'hebbian_like'] = 'none'
+    memory_read_mode: Literal['none', 'attention', 'slot_mix'] = 'none'
+    memory_reset_mode: Literal[
+        'per_forward', 'per_generation', 'manual'
+    ] = 'per_generation'
+    memory_decay: float = 0.0
+    memory_gated_write: bool = True
+    memory_requires_workspace: bool = True
+    memory_after_graph: bool = True
 
     def __post_init__(self) -> None:
         positive = {
@@ -124,6 +135,41 @@ class ModelConfig:
             if not self.graph_after_workspace:
                 raise ConfigError(
                     'Phase 6 supports graph message passing only after slot accumulation'
+                )
+        if self.memory_num_slots < 0:
+            raise ConfigError('memory_num_slots cannot be negative')
+        if self.memory_write_mode not in ('none', 'gated', 'hebbian_like'):
+            raise ConfigError(
+                'memory_write_mode must be none, gated, or hebbian_like'
+            )
+        if self.memory_read_mode not in ('none', 'attention', 'slot_mix'):
+            raise ConfigError(
+                'memory_read_mode must be none, attention, or slot_mix'
+            )
+        if self.memory_reset_mode not in (
+            'per_forward',
+            'per_generation',
+            'manual',
+        ):
+            raise ConfigError(
+                'memory_reset_mode must be per_forward, per_generation, or manual'
+            )
+        if not 0.0 <= self.memory_decay <= 1.0:
+            raise ConfigError('memory_decay must be in [0, 1]')
+        if self.memory_enabled:
+            if not self.workspace_enabled:
+                raise ConfigError('memory_enabled requires workspace_enabled=True')
+            if self.memory_num_slots <= 0:
+                raise ConfigError(
+                    'memory_num_slots must be positive when memory is enabled'
+                )
+            if not self.memory_requires_workspace:
+                raise ConfigError(
+                    'Phase 7 memory requires the bounded workspace path'
+                )
+            if not self.memory_after_graph:
+                raise ConfigError(
+                    'Phase 7 supports memory only after optional graph processing'
                 )
 
     @property
@@ -353,6 +399,58 @@ class RunManifest:
             payload['graph_top_k'] = graph_top_k
             payload['graph_gated_update'] = graph_gated_update
             payload['graph_variant_name'] = graph_variant_name
+            memory_enabled = bool(
+                self.model_config.get('memory_enabled', False)
+            )
+            memory_num_slots = (
+                int(self.model_config.get('memory_num_slots', 0))
+                if memory_enabled
+                else 0
+            )
+            memory_write_mode = (
+                str(self.model_config.get('memory_write_mode', 'none'))
+                if memory_enabled
+                else 'none'
+            )
+            memory_read_mode = (
+                str(self.model_config.get('memory_read_mode', 'none'))
+                if memory_enabled
+                else 'none'
+            )
+            memory_reset_mode = (
+                str(
+                    self.model_config.get(
+                        'memory_reset_mode', 'per_generation'
+                    )
+                )
+                if memory_enabled
+                else 'per_generation'
+            )
+            memory_variant_name = self.command_args.get('memory_variant_name')
+            if not memory_variant_name:
+                if not workspace_enabled:
+                    memory_variant_name = 'dense-control'
+                elif not memory_enabled:
+                    memory_variant_name = (
+                        'graph-control' if graph_enabled else 'workspace-control'
+                    )
+                elif memory_write_mode == 'none' and memory_read_mode == 'none':
+                    memory_variant_name = 'memory-null'
+                elif graph_enabled:
+                    memory_variant_name = 'graph-memory-gated'
+                else:
+                    memory_variant_name = 'memory-gated'
+            payload['memory_enabled'] = memory_enabled
+            payload['memory_num_slots'] = memory_num_slots
+            payload['memory_write_mode'] = memory_write_mode
+            payload['memory_read_mode'] = memory_read_mode
+            payload['memory_reset_mode'] = memory_reset_mode
+            payload['memory_decay'] = (
+                float(self.model_config.get('memory_decay', 0.0))
+                if memory_enabled
+                else 0.0
+            )
+            payload['memory_variant_name'] = memory_variant_name
         payload['timestamp'] = self.created_at
         payload['git_commit_hash'] = self.git_commit
         payload['config'] = {
@@ -372,7 +470,8 @@ class RunManifest:
             'SARN-Dense is the only implemented model path for this artifact.',
             'Toy generated data is for reproducibility checks, not language capability claims.',
             'SARN-Hybrid and advanced modules are not implemented in this run.',
-            'Workspace and graph states are transient; they are not persistent or resettable memory.',
+            'Workspace, graph, and working-memory states are transient and not persistent memory.',
+            'Working memory is bounded and resettable; it is not user or long-term memory.',
             'Graph message passing does not establish formal logic or human-like reasoning.',
         ]
         return payload

@@ -226,6 +226,7 @@ def run_smoke_training(
             'sequence_length': training_config.sequence_length,
             **resumed_model.workspace_metrics(),
             **resumed_model.graph_metrics(),
+            **resumed_model.memory_metrics(),
         },
         trace_events=[event.to_dict() for event in trace.events],
         config_hash=config_hash(configuration_payload),

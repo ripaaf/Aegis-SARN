@@ -8,6 +8,7 @@ from torch import Tensor, nn
 from aegis_sarn.config import ModelConfig
 from aegis_sarn.sarn.graph import GraphMessagePassing
 from aegis_sarn.sarn.layers import DecoderBlock, KVCache, RMSNorm
+from aegis_sarn.sarn.memory import ResettableWorkingMemory
 from aegis_sarn.sarn.workspace import LatentWorkspace
 
 
@@ -46,6 +47,19 @@ class SARNDense(nn.Module):
             self.graph = None
         self.last_graph_diagnostics: dict[
             str, float | int | str | bool | None
+        ] = {}
+        if config.memory_enabled:
+            # Memory construction follows all earlier experimental modules so
+            # matched dense/workspace/graph parameters initialize identically.
+            rng_state = torch.random.get_rng_state()
+            try:
+                self.memory = ResettableWorkingMemory(config)
+            finally:
+                torch.random.set_rng_state(rng_state)
+        else:
+            self.memory = None
+        self.last_memory_diagnostics: dict[
+            str, float | int | str | bool
         ] = {}
         self.apply(self._initialize_weights)
         if config.tie_embeddings:
@@ -92,6 +106,14 @@ class SARNDense(nn.Module):
                 raise ValueError(
                     'workspace-enabled generation requires workspace cache state'
                 )
+            if (
+                self.memory is not None
+                and self.config.memory_reset_mode == 'per_generation'
+                and past_key_values[0].memory_slots is None
+            ):
+                raise ValueError(
+                    'memory-enabled generation requires memory cache state'
+                )
         if past_length + input_ids.shape[1] > self.config.max_seq_len:
             raise ValueError('input plus KV cache exceeds max_seq_len')
 
@@ -121,6 +143,22 @@ class SARNDense(nn.Module):
                 self.last_graph_diagnostics = graph_diagnostics.to_dict()
             else:
                 self.last_graph_diagnostics = {}
+            present_memory = None
+            if self.memory is not None:
+                past_memory = (
+                    None
+                    if not past_key_values
+                    else past_key_values[0].memory_slots
+                )
+                (
+                    hidden,
+                    read_slot_history,
+                    present_memory,
+                    memory_diagnostics,
+                ) = self.memory(hidden, read_slot_history, past_memory)
+                self.last_memory_diagnostics = memory_diagnostics.to_dict()
+            else:
+                self.last_memory_diagnostics = {}
             hidden, workspace_diagnostics = self.workspace.read_and_writeback(
                 hidden, read_slot_history
             )
@@ -134,10 +172,12 @@ class SARNDense(nn.Module):
                     key=first_cache.key,
                     value=first_cache.value,
                     workspace_slots=present_workspace,
+                    memory_slots=present_memory,
                 )
         else:
             self.last_workspace_diagnostics = {}
             self.last_graph_diagnostics = {}
+            self.last_memory_diagnostics = {}
         logits = self.lm_head(self.final_norm(hidden))
         return logits, present_key_values if use_cache else None
 
@@ -149,6 +189,9 @@ class SARNDense(nn.Module):
         if self.graph is not None:
             total -= self.graph.count_parameters()
             total += self.graph.active_parameter_count()
+        if self.memory is not None:
+            total -= self.memory.count_parameters()
+            total += self.memory.active_parameter_count()
         return total
 
     def workspace_metrics(self) -> dict[str, object]:
@@ -196,4 +239,39 @@ class SARNDense(nn.Module):
             'graph_slot_norm': 0.0,
         }
         base.update(self.last_graph_diagnostics)
+        return base
+
+    def memory_metrics(self) -> dict[str, object]:
+        base: dict[str, object] = {
+            'memory_enabled': self.config.memory_enabled,
+            'memory_num_slots': (
+                self.config.memory_num_slots if self.config.memory_enabled else 0
+            ),
+            'memory_write_mode': (
+                self.config.memory_write_mode
+                if self.config.memory_enabled
+                else 'none'
+            ),
+            'memory_read_mode': (
+                self.config.memory_read_mode
+                if self.config.memory_enabled
+                else 'none'
+            ),
+            'memory_reset_mode': (
+                self.config.memory_reset_mode
+                if self.config.memory_enabled
+                else 'per_generation'
+            ),
+            'memory_decay': (
+                self.config.memory_decay if self.config.memory_enabled else 0.0
+            ),
+            'memory_parameter_count': (
+                0 if self.memory is None else self.memory.count_parameters()
+            ),
+            'memory_gate_mean': 0.0,
+            'memory_norm': 0.0,
+            'memory_write_norm': 0.0,
+            'memory_reset_applied': False,
+        }
+        base.update(self.last_memory_diagnostics)
         return base

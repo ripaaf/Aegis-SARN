@@ -17,6 +17,8 @@ Generated artifacts are reproducible outputs, not the source of truth. Source co
 - Phase 5 workspace comparisons: artifacts/reports/workspace-comparison.md and workspace-comparison.json
 - Phase 6 graph sweeps: artifacts/phase6-graph/graph-sweep-summary.md and graph-sweep-summary.json
 - Phase 6 graph comparisons: artifacts/reports/graph-comparison.md and graph-comparison.json
+- Phase 7 memory sweeps: `artifacts/phase7-memory/memory-sweep-summary.md` and `memory-sweep-summary.json`
+- Phase 7 memory comparisons: `artifacts/reports/memory-comparison.md` and `memory-comparison.json`
 
 ## Git Policy
 
@@ -42,4 +44,4 @@ The code prefers deterministic JSON/checkpoint content. On Windows workspaces wh
 
 ## Scope
 
-Artifact reports may contain local CPU timings and toy/structural-task metrics. They are suitable for regression checks and controlled comparison. They are not language or reasoning capability claims and do not imply that SARN-Hybrid, retrieval, tools, resettable/persistent memory, or multimodal systems are implemented.
+Artifact reports may contain local CPU timings and toy/structural/memory-task metrics. They are suitable for regression checks and controlled comparison. Phase 7 artifacts measure a bounded resettable tensor prototype only; they do not establish useful or human-like memory. Reports do not imply that SARN-Hybrid, persistent memory, retrieval, tools, or multimodal systems are implemented.
