@@ -29,9 +29,11 @@ The ambition is architectural, not rhetorical. The project does not claim that S
 
 **Phase 7 - resettable working-memory prototype implemented within the SARN-Dense research harness.** The bounded memory module is experimental, disabled by default, and requires the Phase 5 workspace. Its state exists only in explicit run-local cache tensors. Dense, workspace, graph, null-memory, memory, and graph-memory controls have deterministic memory-task evaluation, diagnostics, sweeps, comparisons, and correctness/reset gates.
 
-SARN-Dense is still the only complete implemented model path. Phase 7 is temporary tensor state, not persistent or user memory, retrieval, self-learning, human-like memory, or base-weight mutation. Phase 8 sparse expert routing is next/planned. MoE, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, multimodal modules, advanced safety systems, and full SARN-Hybrid remain unimplemented.
+**Phase 8 - sparse expert routing prototype implemented within the SARN-Dense research harness.** Experts are disabled by default and can replace selected dense FFNs with a tiny local top-k router. Dense, null-routing, two-expert, and four-expert controls report routing balance, normalized entropy, active/total parameters, task metrics, sweeps, comparisons, and correctness-oriented gates.
 
-## Phase 1-7 Quickstart
+SARN-Dense is still the only complete implemented model path. Phase 8 is a local CPU reference experiment, not distributed or production MoE, proof of expert specialization, self-improvement, or SARN-Hybrid. Phase 9 hybrid sequence-engine research is next/planned. SSM/Mamba, retrieval, tools, persistent memory, VLM, SAM, LAM, multimodal modules, advanced safety systems, and full SARN-Hybrid remain unimplemented.
+
+## Phase 1-8 Quickstart
 
 Python 3.11+ and PyTorch 2.2+ are supported. No GPU is required.
 
@@ -84,6 +86,10 @@ aegis-sarn eval-multiseed --checkpoint artifacts/phase2-check/train/sarn-dense-s
 .\.venv\Scripts\aegis-sarn.exe sweep-memory --output-dir artifacts/phase7-memory --device cpu --seed 123
 .\.venv\Scripts\aegis-sarn.exe compare-memory --input artifacts/phase7-memory --output-dir artifacts/reports
 .\.venv\Scripts\aegis-sarn.exe check-gates --summary artifacts/phase7-memory/memory-sweep-summary.json
+
+.\.venv\Scripts\aegis-sarn.exe sweep-experts --output-dir artifacts/phase8-experts --device cpu --seed 123
+.\.venv\Scripts\aegis-sarn.exe compare-experts --input artifacts/phase8-experts --output-dir artifacts/reports
+.\.venv\Scripts\aegis-sarn.exe check-gates --summary artifacts/phase8-experts/expert-sweep-summary.json
 ```
 
 `reproduce-phase2` creates the stable checkpoint path `artifacts/phase2-check/train/sarn-dense-smoke.pt` plus train, evaluation, benchmark, registry, and baseline-report artifacts. Generated artifacts remain local and are ignored by Git.
@@ -107,6 +113,9 @@ aegis-sarn check-gates --summary artifacts/phase6-graph/graph-sweep-summary.json
 aegis-sarn sweep-memory --output-dir artifacts/phase7-memory --device cpu --seed 123
 aegis-sarn compare-memory --input artifacts/phase7-memory --output-dir artifacts/reports
 aegis-sarn check-gates --summary artifacts/phase7-memory/memory-sweep-summary.json
+aegis-sarn sweep-experts --output-dir artifacts/phase8-experts --device cpu --seed 123
+aegis-sarn compare-experts --input artifacts/phase8-experts --output-dir artifacts/reports
+aegis-sarn check-gates --summary artifacts/phase8-experts/expert-sweep-summary.json
 ```
 
 Phase 5 is the first bounded latent-workspace experiment. It compares disabled, no-writeback, two-slot, and four-slot configurations while holding the tiny control model, data, seed, and run path fixed. The workspace is disabled by default. Its slots are transient learned tensor states, not graph nodes, memory records, concepts, or evidence that SARN-Hybrid works.
@@ -114,6 +123,8 @@ Phase 5 is the first bounded latent-workspace experiment. It compares disabled, 
 Phase 6 is the first bounded graph message-passing experiment. It compares the dense and workspace-only controls with null-edge, frozen-identity, and one/two-cycle learned dense graphs. The graph is disabled by default, runs only over transient latent workspace slots, and records mechanical diagnostics and toy/structural metrics. It is not resettable memory, persistent memory, formal symbolic reasoning, proof of human-like reasoning, or evidence that SARN-Hybrid works.
 
 Phase 7 is the first resettable working-memory experiment. It compares dense, workspace-only, graph-only, null-memory, memory-gated, and graph-memory-gated controls at matched tiny budgets. Memory is disabled by default, temporary, bounded, and carried only through an explicit generation cache. Independent calls reset it; no persistent store is written and no model weight is changed during serving. These toy experiments are not retrieval, self-learning, user or long-term memory, proof of human-like memory, or evidence that SARN-Hybrid works.
+
+Phase 8 is the first sparse expert-routing experiment. It compares the unchanged dense FFN, an exact dense/null-routing control, and two/four-expert top-k replacements at matched tiny budgets. Experts are disabled by default. Active parameters estimate the router plus per-token selected experts, while total parameters include every stored expert. The implementation has no distributed routing, custom kernel, or token dropping. Toy routing patterns are not proof of specialization, full MoE scaling, or evidence that SARN-Hybrid works.
 
 Run the deterministic CPU smoke trainer. It overfits a generated repeated-pattern batch, resumes the optimizer from its checkpoint, evaluates loss, generates tokens, and writes a JSON manifest:
 
@@ -150,7 +161,7 @@ Sampling is explicit and reproducible from a fixed seed:
 aegis-sarn run --checkpoint artifacts/phase1/sarn-dense-smoke.pt --prompt 'aegis sarn ' --strategy sample --temperature 0.8 --top-k 16 --top-p 0.9 --seed 7 --output-dir runs
 ```
 
-Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phases 2-7 also record runs in local registries, compare tiny dense, attention, workspace, graph, and memory configurations, check experiment gates, and generate Markdown/JSON reports. Phase 7 manifests record bounded-memory configuration, parameter counts, read/write diagnostics, reset mode, and reset/isolation results. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and these checkpoints are not useful natural-language models. Generated artifacts are ignored by Git.
+Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phases 2-8 also record runs in local registries, compare tiny dense, attention, workspace, graph, memory, and expert configurations, check experiment gates, and generate Markdown/JSON reports. Phase 8 manifests record router configuration, routing/load diagnostics, and active/total parameter estimates. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and these checkpoints are not useful natural-language models. Generated artifacts are ignored by Git.
 
 ## Start Here
 

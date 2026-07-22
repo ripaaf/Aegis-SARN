@@ -11,7 +11,7 @@ This matrix prevents ideas from disappearing or quietly becoming commitments. â€
 | local attention | model experiment | optional accelerator | bounded/local sequence interactions | 9 | long-context quality, latency, lost-global-information tests | proposed |
 | linear attention | model experiment | optional accelerator | approximate/structured attention alternative | 9 | quality, stability, realized hardware cost | future experiment |
 | Mamba/selective SSM | model experiment | optional accelerator | attention alternative/hybrid | 9 | workload-specific quality, memory, speed | proposed |
-| MoE/Switch-style routing | model experiment | optional accelerator | selected FFN replacements | 8 | load balance, quality per active cost, total memory | proposed, later-scale |
+| MoE/Switch-style routing | model experiment | optional accelerator | selected FFN replacements | 8 | load balance, quality per active cost, total memory | tiny local prototype; disabled by default |
 | latent workspace | research hypothesis | core spine | bounded latent workspace slots | 5 | structural generalization and causal semantics | experimental; neutral slot naming |
 | latent-slot graph | research hypothesis | core spine | message passing among workspace slots | 6 | equal-compute/null-edge/frozen-edge ablations | experimental; disabled by default |
 | gated writeback | model mechanism | core spine | controlled workspace residual into token states | 5â€“6 | stability, gate use, no-writeback and MLP controls | experimental |

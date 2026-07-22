@@ -119,6 +119,7 @@ def evaluate_tasks(
     metrics.update(model.workspace_metrics())
     metrics.update(model.graph_metrics())
     metrics.update(model.memory_metrics())
+    metrics.update(model.expert_metrics())
     trace.emit('eval_tasks.completed', 'eval.tasks', {'status': 'completed'})
 
     configuration = {

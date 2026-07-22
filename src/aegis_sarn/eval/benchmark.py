@@ -104,6 +104,7 @@ def benchmark_generation(
         metrics.update(model.workspace_metrics())
         metrics.update(model.graph_metrics())
         metrics.update(model.memory_metrics())
+        metrics.update(model.expert_metrics())
         trace.emit('bench.completed', 'eval.benchmark', metrics)
     except Exception as error:
         trace.emit(

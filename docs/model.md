@@ -174,6 +174,16 @@ MoE is not the first edge optimization: all expert weights still require storage
 
 Expert names such as “math” or “code” are not hard-coded claims. Specialization must be demonstrated from behavior and interventions.
 
+### Phase 8 Sparse Expert Routing Prototype
+
+Phase 8 implements a small local reference path for selected SARN-Dense feed-forward sublayers. A learned linear router assigns each token to the configured top-k of two or four independent FFNs, normalizes the selected weights, and combines only those selected outputs. An optional shared FFN is configurable but is not part of the default sweep. The ordinary dense FFN remains the default path.
+
+The implementation records normalized router entropy, unique active experts, assignment load fractions, a bounded load-balance score, total expert parameters, and a per-token active-parameter estimate. Total storage includes every expert; the active estimate includes the router, top-k experts, and any configured shared expert. These are different quantities and neither is a hardware-speed claim.
+
+Experts are experimental and disabled by default. The matched sweep includes an unchanged dense control, an exact null control that keeps the dense FFN and performs no routing, and two/four-expert top-1/top-2 replacements. Capacity-factor metadata is reserved, but this first prototype does not drop tokens and reports a dropped-token fraction of zero.
+
+This is standard PyTorch tensor computation on one process. It has no expert parallelism, distributed communication, custom kernels, persistent state, retrieval, or tools. Routing assignments do not demonstrate semantic specialization. The correctness and measurement gate does not require an expert variant to beat the baseline and does not accept production MoE or make SARN-Hybrid implemented.
+
 ## 7. Latent Workspace and Graph Track
 
 ### Phase 5 Latent Workspace Prototype

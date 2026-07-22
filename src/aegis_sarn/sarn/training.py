@@ -79,7 +79,10 @@ def train_steps(
     losses: list[float] = []
     for _ in range(steps):
         optimizer.zero_grad(set_to_none=True)
-        loss = language_model_loss(model(input_ids), labels)
+        logits = model(input_ids)
+        loss = language_model_loss(logits, labels)
+        if model.config.experts_enabled:
+            loss = loss + model.expert_auxiliary_loss()
         if not torch.isfinite(loss):
             raise FloatingPointError('non-finite training loss')
         loss.backward()
@@ -227,6 +230,7 @@ def run_smoke_training(
             **resumed_model.workspace_metrics(),
             **resumed_model.graph_metrics(),
             **resumed_model.memory_metrics(),
+            **resumed_model.expert_metrics(),
         },
         trace_events=[event.to_dict() for event in trace.events],
         config_hash=config_hash(configuration_payload),

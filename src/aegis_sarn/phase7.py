@@ -167,7 +167,7 @@ def _memory_sweep_markdown(summary: dict[str, Any]) -> str:
             '- Temporary slots are not human-like, user, or long-term memory.',
             '- No state is persisted outside the explicit generation cache.',
             '- No base model weights are changed during evaluation or serving.',
-            '- SARN-Hybrid and Phase 8+ mechanisms are not implemented here.',
+            '- Expert routing and later mechanisms are outside this Phase 7 comparison.',
         ]
     )
     return '\n'.join(lines) + '\n'
@@ -672,7 +672,7 @@ def compare_memory(input_dir: Path, output_dir: Path) -> dict[str, Any]:
                 'All memory-enabled variants passed reset/isolation checks.',
                 'Memory state exists only in explicit run-local cache tensors.',
                 'Toy metrics do not demonstrate human-like or long-term memory.',
-                'No persistent memory, retrieval, self-learning, or Phase 8+ module exists.',
+                'Expert routing and later modules are not exercised by this memory report.',
             ],
         }
     )

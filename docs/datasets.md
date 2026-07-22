@@ -1,6 +1,6 @@
 # Toy Dataset Cards
 
-These cards describe the generated toy datasets used by the SARN-Dense Phase 1-7 harness. They are engineering fixtures for correctness, reproducibility, task-level evaluation, scaling, attention, latent-workspace, graph-control, and resettable-memory comparisons. They are not real language, reasoning, or useful-memory benchmarks and should be replaced before any capability claim.
+These cards describe the generated toy datasets used by the SARN-Dense Phase 1-8 harness. They are engineering fixtures for correctness, reproducibility, task-level evaluation, scaling, attention, latent-workspace, graph-control, resettable-memory, and sparse-routing comparisons. They are not real language, reasoning, useful-memory, or expert-specialization benchmarks and should be replaced before any capability claim.
 
 SARN-Dense is the baseline/control for these fixtures, not a useful natural-language model.
 

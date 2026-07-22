@@ -56,6 +56,16 @@ class ModelConfig:
     memory_gated_write: bool = True
     memory_requires_workspace: bool = True
     memory_after_graph: bool = True
+    experts_enabled: bool = False
+    expert_num_experts: int = 0
+    expert_top_k: int = 1
+    expert_capacity_factor: float = 1.0
+    expert_hidden_dim: int | None = None
+    expert_router_noise: float = 0.0
+    expert_load_balance_weight: float = 0.0
+    expert_use_shared_expert: bool = False
+    expert_layer_frequency: int = 1
+    expert_replaces_ffn: bool = True
 
     def __post_init__(self) -> None:
         positive = {
@@ -171,6 +181,29 @@ class ModelConfig:
                 raise ConfigError(
                     'Phase 7 supports memory only after optional graph processing'
                 )
+        if self.expert_num_experts < 0:
+            raise ConfigError('expert_num_experts cannot be negative')
+        if self.expert_top_k <= 0:
+            raise ConfigError('expert_top_k must be positive')
+        if self.expert_capacity_factor <= 0.0:
+            raise ConfigError('expert_capacity_factor must be positive')
+        if self.expert_hidden_dim is not None and self.expert_hidden_dim <= 0:
+            raise ConfigError('expert_hidden_dim must be positive or None')
+        if self.expert_router_noise < 0.0:
+            raise ConfigError('expert_router_noise cannot be negative')
+        if self.expert_load_balance_weight < 0.0:
+            raise ConfigError('expert_load_balance_weight cannot be negative')
+        if self.expert_layer_frequency <= 0:
+            raise ConfigError('expert_layer_frequency must be positive')
+        if self.experts_enabled:
+            if self.expert_num_experts <= 1:
+                raise ConfigError(
+                    'expert_num_experts must be greater than one when experts are enabled'
+                )
+            if self.expert_top_k > self.expert_num_experts:
+                raise ConfigError(
+                    'expert_top_k cannot exceed expert_num_experts'
+                )
 
     @property
     def head_dim(self) -> int:
@@ -183,6 +216,14 @@ class ModelConfig:
     @property
     def kv_group_size(self) -> int:
         return self.n_heads // self.resolved_n_kv_heads
+
+    @property
+    def resolved_expert_hidden_dim(self) -> int:
+        return (
+            self.ffn_hidden_dim
+            if self.expert_hidden_dim is None
+            else self.expert_hidden_dim
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -451,6 +492,77 @@ class RunManifest:
                 else 0.0
             )
             payload['memory_variant_name'] = memory_variant_name
+            experts_enabled = bool(
+                self.model_config.get('experts_enabled', False)
+            )
+            expert_num_experts = (
+                int(self.model_config.get('expert_num_experts', 0))
+                if experts_enabled
+                else 0
+            )
+            expert_top_k = (
+                int(self.model_config.get('expert_top_k', 1))
+                if experts_enabled
+                else 0
+            )
+            configured_expert_hidden = self.model_config.get(
+                'expert_hidden_dim'
+            )
+            expert_hidden_dim = (
+                int(
+                    self.model_config.get('ffn_hidden_dim', 0)
+                    if configured_expert_hidden is None
+                    else configured_expert_hidden
+                )
+                if experts_enabled
+                else 0
+            )
+            expert_replaces_ffn = experts_enabled and bool(
+                self.model_config.get('expert_replaces_ffn', True)
+            )
+            expert_variant_name = self.command_args.get(
+                'expert_variant_name'
+            )
+            if not expert_variant_name:
+                if not experts_enabled:
+                    expert_variant_name = 'dense-control'
+                elif not expert_replaces_ffn:
+                    expert_variant_name = 'expert-null'
+                else:
+                    expert_variant_name = (
+                        f'experts-{expert_num_experts}-top{expert_top_k}'
+                    )
+            payload['experts_enabled'] = experts_enabled
+            payload['expert_num_experts'] = expert_num_experts
+            payload['expert_top_k'] = expert_top_k
+            payload['expert_capacity_factor'] = (
+                float(self.model_config.get('expert_capacity_factor', 1.0))
+                if experts_enabled
+                else 0.0
+            )
+            payload['expert_hidden_dim'] = expert_hidden_dim
+            payload['expert_router_noise'] = (
+                float(self.model_config.get('expert_router_noise', 0.0))
+                if experts_enabled
+                else 0.0
+            )
+            payload['expert_load_balance_weight'] = (
+                float(
+                    self.model_config.get('expert_load_balance_weight', 0.0)
+                )
+                if experts_enabled
+                else 0.0
+            )
+            payload['expert_use_shared_expert'] = experts_enabled and bool(
+                self.model_config.get('expert_use_shared_expert', False)
+            )
+            payload['expert_layer_frequency'] = (
+                int(self.model_config.get('expert_layer_frequency', 1))
+                if experts_enabled
+                else 0
+            )
+            payload['expert_replaces_ffn'] = expert_replaces_ffn
+            payload['expert_variant_name'] = expert_variant_name
         payload['timestamp'] = self.created_at
         payload['git_commit_hash'] = self.git_commit
         payload['config'] = {
@@ -473,5 +585,6 @@ class RunManifest:
             'Workspace, graph, and working-memory states are transient and not persistent memory.',
             'Working memory is bounded and resettable; it is not user or long-term memory.',
             'Graph message passing does not establish formal logic or human-like reasoning.',
+            'Sparse routing is a tiny local prototype, not distributed MoE or proof of specialization.',
         ]
         return payload

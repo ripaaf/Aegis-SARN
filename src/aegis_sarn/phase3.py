@@ -74,6 +74,21 @@ MEMORY_MANIFEST_FIELDS = frozenset(
         'memory_variant_name',
     }
 )
+EXPERT_MANIFEST_FIELDS = frozenset(
+    {
+        'experts_enabled',
+        'expert_num_experts',
+        'expert_top_k',
+        'expert_capacity_factor',
+        'expert_hidden_dim',
+        'expert_router_noise',
+        'expert_load_balance_weight',
+        'expert_use_shared_expert',
+        'expert_layer_frequency',
+        'expert_replaces_ffn',
+        'expert_variant_name',
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1069,6 +1084,171 @@ def check_gates(
                         missing = ['unreadable']
                     add(
                         f'{name}:{manifest_name}_memory_fields',
+                        not missing,
+                        'ok' if not missing else ', '.join(missing),
+                    )
+
+    if summary.get('command') == 'sweep-experts':
+        completed = [item for item in items if item.get('status') == 'completed']
+        dense_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'dense-control'
+            and item.get('experts_enabled') is False
+        ]
+        null_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'expert-null'
+            and item.get('experts_enabled') is True
+            and item.get('expert_replaces_ffn') is False
+        ]
+        routed_items = [
+            item
+            for item in completed
+            if item.get('experts_enabled') is True
+            and item.get('expert_replaces_ffn') is True
+        ]
+        add(
+            'experts:all_variants_completed',
+            len(completed) == len(items),
+            f'{len(completed)} of {len(items)} completed',
+        )
+        add(
+            'experts:dense_control_present',
+            bool(dense_controls),
+            f'{len(dense_controls)} completed dense control(s)',
+        )
+        add(
+            'experts:null_control_present',
+            bool(null_controls),
+            f'{len(null_controls)} completed null control(s)',
+        )
+        add(
+            'experts:routed_variant_present',
+            bool(routed_items),
+            f'{len(routed_items)} completed routed variant(s)',
+        )
+        missing_summary_expert = sorted(
+            EXPERT_MANIFEST_FIELDS - set(summary)
+        )
+        add(
+            'experts:summary_metadata_present',
+            not missing_summary_expert,
+            'ok'
+            if not missing_summary_expert
+            else ', '.join(missing_summary_expert),
+        )
+
+        for item in completed:
+            name = str(item.get('config_name') or 'experts')
+            missing_item_fields = sorted(
+                EXPERT_MANIFEST_FIELDS - set(item)
+            )
+            add(
+                f'{name}:expert_metadata_present',
+                not missing_item_fields,
+                'ok'
+                if not missing_item_fields
+                else ', '.join(missing_item_fields),
+            )
+            add(
+                f'{name}:task_metrics_present',
+                isinstance(item.get('task_metrics'), list)
+                and bool(item.get('task_metrics')),
+                str(len(item.get('task_metrics') or [])),
+            )
+            for metric_name in (
+                'task_eval_loss',
+                'task_perplexity',
+                'task_token_accuracy',
+            ):
+                value = item.get(metric_name)
+                add(
+                    f'{name}:{metric_name}_finite',
+                    _is_finite_number(value),
+                    str(value),
+                )
+            parameters = item.get('parameter_count')
+            active_parameters = item.get('active_parameter_count')
+            add(
+                f'{name}:active_parameters_within_total',
+                _is_finite_number(parameters)
+                and _is_finite_number(active_parameters)
+                and 0 < float(active_parameters) <= float(parameters),
+                f'{active_parameters} <= {parameters}',
+            )
+
+            experts_enabled = item.get('experts_enabled') is True
+            replaces_ffn = item.get('expert_replaces_ffn') is True
+            expert_parameters = item.get('expert_parameter_count')
+            expert_active_parameters = item.get(
+                'expert_active_parameter_count'
+            )
+            add(
+                f'{name}:expert_parameter_counts_valid',
+                _is_finite_number(expert_parameters)
+                and _is_finite_number(expert_active_parameters)
+                and 0 <= float(expert_active_parameters)
+                <= float(expert_parameters)
+                and (
+                    not replaces_ffn or float(expert_parameters) > 0
+                ),
+                f'{expert_active_parameters} <= {expert_parameters}',
+            )
+            if experts_enabled:
+                num_experts = item.get('expert_num_experts')
+                top_k = item.get('expert_top_k')
+                add(
+                    f'{name}:expert_count_valid',
+                    _is_finite_number(num_experts)
+                    and float(num_experts) > 1,
+                    str(num_experts),
+                )
+                add(
+                    f'{name}:expert_top_k_valid',
+                    _is_finite_number(top_k)
+                    and _is_finite_number(num_experts)
+                    and 0 < float(top_k) <= float(num_experts),
+                    f'{top_k} <= {num_experts}',
+                )
+                for metric_name in (
+                    'expert_router_entropy',
+                    'expert_load_balance_score',
+                    'expert_max_load_fraction',
+                    'expert_min_load_fraction',
+                    'expert_dropped_token_fraction',
+                ):
+                    value = item.get(metric_name)
+                    add(
+                        f'{name}:{metric_name}_finite',
+                        _is_finite_number(value),
+                        str(value),
+                    )
+                if replaces_ffn:
+                    active_experts = item.get('expert_active_experts')
+                    add(
+                        f'{name}:active_experts_valid',
+                        _is_finite_number(active_experts)
+                        and _is_finite_number(num_experts)
+                        and 0 < float(active_experts)
+                        <= float(num_experts),
+                        f'{active_experts} <= {num_experts}',
+                    )
+
+            manifest_paths = item.get('manifest_paths') or {}
+            for manifest_name, manifest_path in manifest_paths.items():
+                path = Path(str(manifest_path))
+                if path.exists() and path.name.endswith('.json'):
+                    try:
+                        manifest = _load_manifest(path)
+                        missing = sorted(
+                            EXPERT_MANIFEST_FIELDS - set(manifest)
+                        )
+                    except (OSError, json.JSONDecodeError):
+                        missing = ['unreadable']
+                    add(
+                        f'{name}:{manifest_name}_expert_fields',
                         not missing,
                         'ok' if not missing else ', '.join(missing),
                     )

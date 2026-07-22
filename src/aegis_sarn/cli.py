@@ -25,6 +25,7 @@ from aegis_sarn.phase4 import compare_attention, run_attention_sweep
 from aegis_sarn.phase5 import compare_workspace, run_workspace_sweep
 from aegis_sarn.phase6 import compare_graph, run_graph_sweep
 from aegis_sarn.phase7 import compare_memory, run_memory_sweep
+from aegis_sarn.phase8 import compare_experts, run_expert_sweep
 from aegis_sarn.registry import record_manifest, registry_entries
 from aegis_sarn.reporting import write_baseline_report
 from aegis_sarn.sarn.checkpoint import load_checkpoint
@@ -213,6 +214,18 @@ def _parser() -> argparse.ArgumentParser:
     )
     train_parser.add_argument('--memory-decay', type=float, default=0.0)
     train_parser.add_argument('--memory-no-gated-write', action='store_true')
+    train_parser.add_argument('--experts-enabled', action='store_true')
+    train_parser.add_argument('--expert-num-experts', type=int, default=0)
+    train_parser.add_argument('--expert-top-k', type=int, default=1)
+    train_parser.add_argument('--expert-capacity-factor', type=float, default=1.0)
+    train_parser.add_argument('--expert-hidden-dim', type=int)
+    train_parser.add_argument('--expert-router-noise', type=float, default=0.0)
+    train_parser.add_argument(
+        '--expert-load-balance-weight', type=float, default=0.0
+    )
+    train_parser.add_argument('--expert-use-shared-expert', action='store_true')
+    train_parser.add_argument('--expert-layer-frequency', type=int, default=1)
+    train_parser.add_argument('--expert-null-control', action='store_true')
     train_parser.add_argument('--learning-rate', type=float, default=5e-3)
     train_parser.add_argument('--seed', type=int, default=7)
     train_parser.add_argument('--device', default='cpu')
@@ -420,6 +433,33 @@ def _parser() -> argparse.ArgumentParser:
     )
     memory_compare_parser.add_argument('--json', action='store_true')
 
+    expert_sweep_parser = subparsers.add_parser(
+        'sweep-experts',
+        help='compare matched Phase 8 sparse-expert controls',
+    )
+    expert_sweep_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/phase8-experts')
+    )
+    expert_sweep_parser.add_argument('--device', default='cpu')
+    expert_sweep_parser.add_argument('--seed', type=int, default=123)
+    expert_sweep_parser.add_argument('--train-steps', type=int, default=8)
+    expert_sweep_parser.add_argument('--batch-size', type=int, default=2)
+    expert_sweep_parser.add_argument('--sequence-length', type=int, default=16)
+    expert_sweep_parser.add_argument('--max-new-tokens', type=int, default=2)
+    expert_sweep_parser.add_argument('--bench-repeats', type=int, default=1)
+    expert_sweep_parser.add_argument('--json', action='store_true')
+
+    expert_compare_parser = subparsers.add_parser(
+        'compare-experts', help='compare Phase 8 expert sweep outputs'
+    )
+    expert_compare_parser.add_argument(
+        '--input', type=Path, default=Path('artifacts/phase8-experts')
+    )
+    expert_compare_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/reports')
+    )
+    expert_compare_parser.add_argument('--json', action='store_true')
+
     gates_parser = subparsers.add_parser(
         'check-gates', help='check basic experiment quality gates'
     )
@@ -527,6 +567,16 @@ def _train_command(arguments: argparse.Namespace) -> int:
         memory_reset_mode=arguments.memory_reset_mode,
         memory_decay=arguments.memory_decay,
         memory_gated_write=not arguments.memory_no_gated_write,
+        experts_enabled=arguments.experts_enabled,
+        expert_num_experts=arguments.expert_num_experts,
+        expert_top_k=arguments.expert_top_k,
+        expert_capacity_factor=arguments.expert_capacity_factor,
+        expert_hidden_dim=arguments.expert_hidden_dim,
+        expert_router_noise=arguments.expert_router_noise,
+        expert_load_balance_weight=arguments.expert_load_balance_weight,
+        expert_use_shared_expert=arguments.expert_use_shared_expert,
+        expert_layer_frequency=arguments.expert_layer_frequency,
+        expert_replaces_ffn=not arguments.expert_null_control,
     )
     training_config = TrainingConfig(
         learning_rate=arguments.learning_rate,
@@ -1159,6 +1209,58 @@ def _compare_memory_command(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _sweep_experts_command(arguments: argparse.Namespace) -> int:
+    summary = run_expert_sweep(
+        output_dir=arguments.output_dir,
+        device=arguments.device,
+        seed=arguments.seed,
+        train_steps=arguments.train_steps,
+        batch_size=arguments.batch_size,
+        sequence_length=arguments.sequence_length,
+        max_new_tokens=arguments.max_new_tokens,
+        bench_repeats=arguments.bench_repeats,
+    )
+    payload = {
+        'run_id': summary['run_id'],
+        'summary_json_path': summary['artifacts']['summary_json'],
+        'summary_markdown_path': summary['artifacts']['summary_markdown'],
+        'registry_path': summary['artifacts']['registry'],
+        'metrics': summary['metrics'],
+        'results': summary['results'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense expert sweep completed')
+        print('  variants: {}'.format(summary['metrics']['config_count']))
+        print('  summary: {}'.format(summary['artifacts']['summary_json']))
+        print('  markdown: {}'.format(summary['artifacts']['summary_markdown']))
+        print('  registry: {}'.format(summary['artifacts']['registry']))
+    return 0
+
+
+def _compare_experts_command(arguments: argparse.Namespace) -> int:
+    summary = compare_experts(arguments.input, arguments.output_dir)
+    payload = {
+        'run_id': summary['run_id'],
+        'comparison_json_path': summary['artifacts']['comparison_json'],
+        'comparison_markdown_path': summary['artifacts']['comparison_markdown'],
+        'winners': summary['winners'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense expert comparison generated')
+        print('  markdown: {}'.format(summary['artifacts']['comparison_markdown']))
+        print('  json: {}'.format(summary['artifacts']['comparison_json']))
+        print(
+            '  balanced expert: {}'.format(
+                summary['winners']['best_balanced_expert']['config_name']
+            )
+        )
+    return 0
+
+
 def _check_gates_command(arguments: argparse.Namespace) -> int:
     result = check_gates(
         summary_path=arguments.summary,
@@ -1217,6 +1319,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _sweep_memory_command(arguments)
     if arguments.command == 'compare-memory':
         return _compare_memory_command(arguments)
+    if arguments.command == 'sweep-experts':
+        return _sweep_experts_command(arguments)
+    if arguments.command == 'compare-experts':
+        return _compare_experts_command(arguments)
     if arguments.command == 'check-gates':
         return _check_gates_command(arguments)
     raise AssertionError(f'unhandled command: {arguments.command}')

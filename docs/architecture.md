@@ -147,7 +147,21 @@ tokens -> SARN-Dense blocks -> bounded latent slots
 
 Phase 7 memory is learned tensor computation only. It is disabled by default and carried only in an explicit run-local generation cache; independent calls start from zero unless the caller intentionally passes that cache. No persistent memory is written, no retrieval or tool use is enabled, and no base model weight is updated during serving. Aegis still owns runtime policy, persistent memory, permissions, tools, retrieval, and side effects. This prototype does not make SARN-Hybrid implemented.
 
-### 3.5 Long-Term SARN-Hybrid Path
+### 3.5 Phase 8 Experimental Expert Path
+
+~~~text
+default:
+tokens -> SARN-Dense blocks with dense FFN -> decoder head
+
+Phase 8 experts:
+tokens -> SARN-Dense blocks
+       -> selected block router -> top-k local expert FFNs -> weighted combine
+       -> decoder head
+~~~
+
+Sparse experts are learned tensor modules only and are disabled by default. They replace configured FFN sublayers without changing attention, KV-cache, workspace, graph, or memory ownership. The local reference implementation has no expert parallelism, distributed communication, custom routing kernel, or token dropping. No persistent memory is written and no retrieval or tool path is enabled. SARN-Dense with its dense FFN remains the default control, and this prototype does not make SARN-Hybrid implemented.
+
+### 3.6 Long-Term SARN-Hybrid Path
 
 ```text
 Aegis Runtime
@@ -170,7 +184,7 @@ Aegis Runtime
 
 This diagram is the declared SARN-Hybrid construction target, not a claim of present implementation or success. Core stages and optional accelerators remain independently configurable and ablatable. A dense/attention-only route stays available for controls and hardware fallback. Full details are in [SARN model](model.md).
 
-### 3.6 Ownership Boundary
+### 3.7 Ownership Boundary
 
 SARN-Hybrid may emit logits, structured call proposals, latent-state summaries, uncertainty-related signals, and instrumentation hooks. It may update only bounded run/session neural state allocated by Aegis. It cannot commit persistent memory, execute tools, acquire resources, alter policy, or decide that a verifier passed.
 

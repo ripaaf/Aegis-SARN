@@ -267,7 +267,7 @@ def test_readme_powershell_examples_do_not_use_linux_backslash() -> None:
     assert not re.search(r'\\[ \t]*\r?\n', section)
 
 
-def test_no_phase8_or_later_source_modules_are_required() -> None:
+def test_no_phase9_or_later_source_modules_are_required() -> None:
     source_files = [path for path in Path('src').rglob('*.py')]
     forbidden_module_names = {
         'hybrid',

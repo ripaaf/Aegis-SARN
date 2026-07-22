@@ -21,7 +21,8 @@ class SARNDense(nn.Module):
         self.token_embedding = nn.Embedding(config.vocab_size, config.d_model)
         self.embedding_dropout = nn.Dropout(config.dropout)
         self.blocks = nn.ModuleList(
-            DecoderBlock(config) for _ in range(config.n_layers)
+            DecoderBlock(config, layer_index)
+            for layer_index in range(config.n_layers)
         )
         if config.workspace_enabled:
             # Workspace construction must not perturb initialization of the
@@ -192,7 +193,22 @@ class SARNDense(nn.Module):
         if self.memory is not None:
             total -= self.memory.count_parameters()
             total += self.memory.active_parameter_count()
+        for block in self.blocks:
+            if block.expert_ffn is not None:
+                total -= block.expert_ffn.count_parameters()
+                total += block.expert_ffn.active_parameter_count()
         return total
+
+    def expert_auxiliary_loss(self) -> Tensor:
+        losses = [
+            block.expert_ffn.last_auxiliary_loss
+            for block in self.blocks
+            if block.expert_ffn is not None
+            and block.expert_ffn.last_auxiliary_loss is not None
+        ]
+        if losses:
+            return torch.stack(losses).sum()
+        return self.token_embedding.weight.new_zeros(())
 
     def workspace_metrics(self) -> dict[str, object]:
         base: dict[str, object] = {
@@ -274,4 +290,89 @@ class SARNDense(nn.Module):
             'memory_reset_applied': False,
         }
         base.update(self.last_memory_diagnostics)
+        return base
+
+    def expert_metrics(self) -> dict[str, object]:
+        expert_modules = [
+            block.expert_ffn
+            for block in self.blocks
+            if block.expert_ffn is not None
+        ]
+        diagnostics = [
+            module.last_diagnostics
+            for module in expert_modules
+            if module.last_diagnostics is not None
+        ]
+        expert_parameter_count = sum(
+            module.count_parameters() for module in expert_modules
+        )
+        expert_active_parameter_count = sum(
+            module.active_parameter_count() for module in expert_modules
+        )
+        base: dict[str, object] = {
+            'experts_enabled': self.config.experts_enabled,
+            'expert_num_experts': (
+                self.config.expert_num_experts
+                if self.config.experts_enabled
+                else 0
+            ),
+            'expert_top_k': (
+                self.config.expert_top_k if self.config.experts_enabled else 0
+            ),
+            'expert_capacity_factor': (
+                self.config.expert_capacity_factor
+                if self.config.experts_enabled
+                else 0.0
+            ),
+            'expert_hidden_dim': (
+                self.config.resolved_expert_hidden_dim
+                if self.config.experts_enabled
+                else 0
+            ),
+            'expert_active_experts': 0,
+            'expert_router_entropy': 0.0,
+            'expert_load_balance_score': 0.0,
+            'expert_max_load_fraction': 0.0,
+            'expert_min_load_fraction': 0.0,
+            'expert_dropped_token_fraction': 0.0,
+            'expert_parameter_count': expert_parameter_count,
+            'expert_active_parameter_count': expert_active_parameter_count,
+            'expert_layer_count': len(expert_modules),
+        }
+        if diagnostics:
+            count = float(len(diagnostics))
+            base.update(
+                {
+                    'expert_active_experts': max(
+                        item.active_experts for item in diagnostics
+                    ),
+                    'expert_router_entropy': sum(
+                        float(item.router_entropy.detach().cpu().item())
+                        for item in diagnostics
+                    )
+                    / count,
+                    'expert_load_balance_score': sum(
+                        float(
+                            item.load_balance_score.detach().cpu().item()
+                        )
+                        for item in diagnostics
+                    )
+                    / count,
+                    'expert_max_load_fraction': max(
+                        float(item.max_load_fraction.detach().cpu().item())
+                        for item in diagnostics
+                    ),
+                    'expert_min_load_fraction': min(
+                        float(item.min_load_fraction.detach().cpu().item())
+                        for item in diagnostics
+                    ),
+                    'expert_dropped_token_fraction': sum(
+                        float(
+                            item.dropped_token_fraction.detach().cpu().item()
+                        )
+                        for item in diagnostics
+                    )
+                    / count,
+                }
+            )
         return base

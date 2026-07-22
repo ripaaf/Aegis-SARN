@@ -19,6 +19,8 @@ Generated artifacts are reproducible outputs, not the source of truth. Source co
 - Phase 6 graph comparisons: artifacts/reports/graph-comparison.md and graph-comparison.json
 - Phase 7 memory sweeps: `artifacts/phase7-memory/memory-sweep-summary.md` and `memory-sweep-summary.json`
 - Phase 7 memory comparisons: `artifacts/reports/memory-comparison.md` and `memory-comparison.json`
+- Phase 8 expert sweeps: `artifacts/phase8-experts/expert-sweep-summary.md` and `expert-sweep-summary.json`
+- Phase 8 expert comparisons: `artifacts/reports/expert-comparison.md` and `expert-comparison.json`
 
 ## Git Policy
 
@@ -44,4 +46,4 @@ The code prefers deterministic JSON/checkpoint content. On Windows workspaces wh
 
 ## Scope
 
-Artifact reports may contain local CPU timings and toy/structural/memory-task metrics. They are suitable for regression checks and controlled comparison. Phase 7 artifacts measure a bounded resettable tensor prototype only; they do not establish useful or human-like memory. Reports do not imply that SARN-Hybrid, persistent memory, retrieval, tools, or multimodal systems are implemented.
+Artifact reports may contain local CPU timings and toy/structural/memory-task metrics. They are suitable for regression checks and controlled comparison. Phase 7 artifacts do not establish useful or human-like memory; Phase 8 routing artifacts do not establish expert specialization or full MoE scaling. Reports do not imply that SARN-Hybrid, persistent memory, retrieval, tools, or multimodal systems are implemented.

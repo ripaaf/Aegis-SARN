@@ -10,6 +10,7 @@ from torch import Tensor, nn
 from torch.nn import functional as F
 
 from aegis_sarn.config import ModelConfig
+from aegis_sarn.sarn.experts import SparseExpertFFN
 
 
 @dataclass(frozen=True, slots=True)
@@ -223,16 +224,41 @@ class GatedFFN(nn.Module):
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, config: ModelConfig) -> None:
+    def __init__(self, config: ModelConfig, layer_index: int = 0) -> None:
         super().__init__()
         self.attention_norm = RMSNorm(config.d_model, config.rms_norm_eps)
         self.attention = CausalSelfAttention(config)
         self.ffn_norm = RMSNorm(config.d_model, config.rms_norm_eps)
-        self.ffn = GatedFFN(config) if config.ffn_type == 'gated' else StandardFFN(config)
+        uses_experts = (
+            config.experts_enabled
+            and config.expert_replaces_ffn
+            and layer_index % config.expert_layer_frequency == 0
+        )
+        self.expert_ffn = SparseExpertFFN(config) if uses_experts else None
+        self.ffn = (
+            None
+            if uses_experts
+            else (
+                GatedFFN(config)
+                if config.ffn_type == 'gated'
+                else StandardFFN(config)
+            )
+        )
+        self.last_expert_diagnostics: dict[str, float | int | bool] = {}
+
+    def _ffn_forward(self, inputs: Tensor) -> Tensor:
+        if self.expert_ffn is not None:
+            output, diagnostics = self.expert_ffn(inputs)
+            self.last_expert_diagnostics = diagnostics.to_dict()
+            return output
+        if self.ffn is None:
+            raise RuntimeError('decoder block has no FFN implementation')
+        self.last_expert_diagnostics = {}
+        return self.ffn(inputs)
 
     def forward(self, inputs: Tensor) -> Tensor:
         hidden = inputs + self.attention(self.attention_norm(inputs))
-        return hidden + self.ffn(self.ffn_norm(hidden))
+        return hidden + self._ffn_forward(self.ffn_norm(hidden))
 
     def forward_with_cache(
         self,
@@ -244,4 +270,4 @@ class DecoderBlock(nn.Module):
             self.attention_norm(inputs), past_key_value, use_cache
         )
         hidden = inputs + attention_output
-        return hidden + self.ffn(self.ffn_norm(hidden)), present
+        return hidden + self._ffn_forward(self.ffn_norm(hidden)), present
