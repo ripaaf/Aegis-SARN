@@ -103,9 +103,27 @@ tokens -> SARN-Dense blocks -> bounded latent slots
        -> optional gated writeback -> final normalization -> decoder head
 ~~~
 
-The optional workspace performs learned tensor routing only. It is disabled by default, has no graph edges or message-passing cycles, and carries only transient slot state alongside the generation cache. It does not write persistent memory or enable retrieval, tools, policy changes, or side effects. Aegis continues to own all runtime governance and external effects.
+The Phase 5-only workspace performs learned tensor routing and has no graph cycles. It is disabled by default and carries only transient slot state alongside the generation cache. It does not write persistent memory or enable retrieval, tools, policy changes, or side effects.
 
-### 3.3 Long-Term SARN-Hybrid Path
+### 3.3 Phase 6 Experimental Graph Path
+
+~~~text
+default:
+tokens -> SARN-Dense blocks -> final normalization -> decoder head
+
+Phase 5 workspace:
+tokens -> SARN-Dense blocks -> bounded latent slots
+       -> optional gated writeback -> final normalization -> decoder head
+
+Phase 6 graph:
+tokens -> SARN-Dense blocks -> bounded latent slots
+       -> fixed-count graph message-passing cycles
+       -> optional gated writeback -> final normalization -> decoder head
+~~~
+
+The graph is disabled by default, requires an enabled workspace, and updates only the bounded latent slot tensor. It has no persistent store, reset operation, online weight update, retrieval call, tool path, policy authority, or side effect. Aegis continues to own runtime governance, permissions, tools, external memory, and effects. This isolated module does not make SARN-Hybrid implemented or establish formal or human-like reasoning.
+
+### 3.4 Long-Term SARN-Hybrid Path
 
 ```text
 Aegis Runtime

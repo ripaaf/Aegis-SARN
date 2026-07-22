@@ -1,6 +1,6 @@
 # Toy Dataset Cards
 
-These cards describe the generated toy datasets used by the SARN-Dense Phase 1-5 harness. They are engineering fixtures for correctness, reproducibility, task-level evaluation, scaling, attention, and latent-workspace comparisons. They are not real language benchmarks and should be replaced before any claim about natural-language capability.
+These cards describe the generated toy datasets used by the SARN-Dense Phase 1-6 harness. They are engineering fixtures for correctness, reproducibility, task-level evaluation, scaling, attention, latent-workspace, and graph-control comparisons. They are not real language or reasoning benchmarks and should be replaced before any capability claim.
 
 SARN-Dense is the baseline/control for these fixtures, not a useful natural-language model.
 
@@ -80,6 +80,34 @@ SARN-Dense is the baseline/control for these fixtures, not a useful natural-lang
 - Limitations: the repeated text is too small to evaluate language modeling quality or factual behavior.
 - Why this is not a real language benchmark: generated output reflects a tiny repeated byte stream, not learned natural-language ability.
 - Future replacement: licensed text datasets with stable preprocessing, train/eval/test splits, data cards, and baseline reports.
+
+## toy/relation_chain
+
+- Purpose: provide a deterministic two-link relation pattern plus a start/endpoint query for Phase 6 structural comparisons.
+- Generation method: seeded examples emit two connected integer-token edges followed by query, start, answer marker, and endpoint tokens.
+- Train/eval split: split-specific seed offsets select different node identities.
+- Limitations: fixed markers, tiny graphs, repeated next-token patterns, no natural language, and no proof of relational or human-like reasoning.
+
+## toy/route_propagation
+
+- Purpose: measure a tiny three-hop route pattern across dense, workspace, and graph controls.
+- Generation method: seeded examples emit three connected token edges and query the first-to-last endpoint.
+- Train/eval split: split-specific seed offsets select different routes.
+- Limitations: route size and syntax are fixed, chance/local-pattern effects are substantial, and success would not establish general graph reasoning.
+
+## toy/slot_binding
+
+- Purpose: provide key/value-like binding patterns with distractors and a selected-key query.
+- Generation method: seeded examples emit three key-marker-value triples, then query one key and place its value after an answer marker.
+- Train/eval split: split-specific seed offsets choose keys, values, and queried binding.
+- Limitations: tiny bounded bindings are not working memory, persistent memory, language understanding, or concept learning.
+
+## toy/length_extrapolation
+
+- Purpose: expose a minimal structural length shift for measurement plumbing.
+- Generation method: the train split emits two-edge routes while validation/eval emits three-edge routes, each with a start/endpoint query.
+- Train/eval split: both route length and seeded node identities differ by split.
+- Limitations: the shift is tiny, the sweep smoke trainer does not train directly on this task, and metrics cannot support a generalization or reasoning claim.
 
 ## Governance Notes
 

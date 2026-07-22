@@ -12,9 +12,9 @@ This matrix prevents ideas from disappearing or quietly becoming commitments. �
 | linear attention | model experiment | optional accelerator | approximate/structured attention alternative | 8 | quality, stability, realized hardware cost | future experiment |
 | Mamba/selective SSM | model experiment | optional accelerator | attention alternative/hybrid | 8 | workload-specific quality, memory, speed | proposed |
 | MoE/Switch-style routing | model experiment | optional accelerator | selected FFN replacements | 7 | load balance, quality per active cost, total memory | proposed, later-scale |
-| latent concept model | research hypothesis | core spine | latent workspace slots | 4 | structural generalization and causal semantics | proposed; neutral slot naming |
-| sparse concept graph | research hypothesis | core spine | message passing among workspace slots | 5 | equal-compute/null-edge ablations | proposed |
-| gated writeback | model mechanism | core spine | controlled workspace/memory residual into token states | 4–6 | stability, gate use, no-writeback and MLP controls | proposed |
+| latent workspace | research hypothesis | core spine | bounded latent workspace slots | 5 | structural generalization and causal semantics | experimental; neutral slot naming |
+| latent-slot graph | research hypothesis | core spine | message passing among workspace slots | 6 | equal-compute/null-edge/frozen-edge ablations | experimental; disabled by default |
+| gated writeback | model mechanism | core spine | controlled workspace residual into token states | 5–6 | stability, gate use, no-writeback and MLP controls | experimental |
 | top-k competition/inhibition | model experiment | core spine | workspace/expert sparsity | 4/7 | stability, sparsity, quality, gradients | proposed |
 | belief propagation | terminology/method | research phenomenon | only if a defined probabilistic graphical model exists | unscheduled | calibration and correct probabilistic semantics | not currently claimed |
 | Hebbian/fast-weight memory | model experiment | core spine | resettable neural working memory | 6 | capacity, conflict, reset, leakage, baseline gain | proposed |

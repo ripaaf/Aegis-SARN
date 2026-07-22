@@ -105,6 +105,7 @@ def evaluate_toy(
             'sequence_length': sequence_length,
         }
         metrics.update(model.workspace_metrics())
+        metrics.update(model.graph_metrics())
         trace.emit(
             'generation.completed',
             'eval.toy',

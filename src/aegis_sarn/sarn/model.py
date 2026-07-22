@@ -6,6 +6,7 @@ import torch
 from torch import Tensor, nn
 
 from aegis_sarn.config import ModelConfig
+from aegis_sarn.sarn.graph import GraphMessagePassing
 from aegis_sarn.sarn.layers import DecoderBlock, KVCache, RMSNorm
 from aegis_sarn.sarn.workspace import LatentWorkspace
 
@@ -34,6 +35,18 @@ class SARNDense(nn.Module):
         self.last_workspace_diagnostics: dict[str, float | int | bool] = {}
         self.final_norm = RMSNorm(config.d_model, config.rms_norm_eps)
         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=False)
+        if config.graph_enabled:
+            # Graph construction must not perturb matched control initialization.
+            rng_state = torch.random.get_rng_state()
+            try:
+                self.graph = GraphMessagePassing(config)
+            finally:
+                torch.random.set_rng_state(rng_state)
+        else:
+            self.graph = None
+        self.last_graph_diagnostics: dict[
+            str, float | int | str | bool | None
+        ] = {}
         self.apply(self._initialize_weights)
         if config.tie_embeddings:
             self.lm_head.weight = self.token_embedding.weight
@@ -99,10 +112,22 @@ class SARNDense(nn.Module):
                 if not past_key_values
                 else past_key_values[0].workspace_slots
             )
-            hidden, present_workspace, diagnostics = self.workspace(
+            raw_slot_history = self.workspace.accumulate_slots(
                 hidden, past_workspace
             )
-            self.last_workspace_diagnostics = diagnostics.to_dict()
+            read_slot_history = raw_slot_history
+            if self.graph is not None:
+                read_slot_history, graph_diagnostics = self.graph(raw_slot_history)
+                self.last_graph_diagnostics = graph_diagnostics.to_dict()
+            else:
+                self.last_graph_diagnostics = {}
+            hidden, workspace_diagnostics = self.workspace.read_and_writeback(
+                hidden, read_slot_history
+            )
+            self.last_workspace_diagnostics = workspace_diagnostics.to_dict()
+            # Cache the pre-graph accumulator. Reapplying graph transforms to
+            # cached graph outputs would break full/incremental causal parity.
+            present_workspace = raw_slot_history[:, -1]
             if use_cache:
                 first_cache = present_key_values[0]
                 present_key_values[0] = KVCache(
@@ -112,11 +137,19 @@ class SARNDense(nn.Module):
                 )
         else:
             self.last_workspace_diagnostics = {}
+            self.last_graph_diagnostics = {}
         logits = self.lm_head(self.final_norm(hidden))
         return logits, present_key_values if use_cache else None
 
     def count_parameters(self) -> int:
         return sum(parameter.numel() for parameter in self.parameters())
+
+    def active_parameter_count(self) -> int:
+        total = self.count_parameters()
+        if self.graph is not None:
+            total -= self.graph.count_parameters()
+            total += self.graph.active_parameter_count()
+        return total
 
     def workspace_metrics(self) -> dict[str, object]:
         base: dict[str, object] = {
@@ -138,4 +171,29 @@ class SARNDense(nn.Module):
             'workspace_norm': 0.0,
         }
         base.update(self.last_workspace_diagnostics)
+        return base
+
+    def graph_metrics(self) -> dict[str, object]:
+        base: dict[str, object] = {
+            'graph_enabled': self.config.graph_enabled,
+            'graph_num_cycles': (
+                self.config.graph_num_cycles if self.config.graph_enabled else 0
+            ),
+            'graph_edge_mode': (
+                self.config.graph_edge_mode if self.config.graph_enabled else 'none'
+            ),
+            'graph_top_k': (
+                self.config.graph_top_k if self.config.graph_enabled else None
+            ),
+            'graph_gated_update': (
+                self.config.graph_gated_update if self.config.graph_enabled else False
+            ),
+            'graph_parameter_count': (
+                0 if self.graph is None else self.graph.count_parameters()
+            ),
+            'graph_gate_mean': 0.0,
+            'graph_message_norm': 0.0,
+            'graph_slot_norm': 0.0,
+        }
+        base.update(self.last_graph_diagnostics)
         return base

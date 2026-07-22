@@ -69,6 +69,16 @@ class LatentWorkspace(nn.Module):
         token_states: Tensor,
         past_slots: Tensor | None = None,
     ) -> tuple[Tensor, Tensor, WorkspaceDiagnostics]:
+        slot_history = self.accumulate_slots(token_states, past_slots)
+        updated, diagnostics = self.read_and_writeback(token_states, slot_history)
+        return updated, slot_history[:, -1], diagnostics
+
+    def accumulate_slots(
+        self,
+        token_states: Tensor,
+        past_slots: Tensor | None = None,
+    ) -> Tensor:
+        '''Return causal pre-read slot states for every input position.'''
         if token_states.ndim != 3 or token_states.shape[-1] != self.d_model:
             raise ValueError(
                 'token_states must have [batch, sequence, model_dimension]'
@@ -82,7 +92,25 @@ class LatentWorkspace(nn.Module):
         contributions = (
             routing_weights.unsqueeze(-1) * token_updates.unsqueeze(-2)
         )
-        slot_history = initial_slots.unsqueeze(1) + contributions.cumsum(dim=1)
+        return initial_slots.unsqueeze(1) + contributions.cumsum(dim=1)
+
+    def read_and_writeback(
+        self,
+        token_states: Tensor,
+        slot_history: Tensor,
+    ) -> tuple[Tensor, WorkspaceDiagnostics]:
+        '''Read causal slot states and optionally write context to tokens.'''
+        expected = (
+            token_states.shape[0],
+            token_states.shape[1],
+            self.num_slots,
+            self.d_model,
+        )
+        if slot_history.shape != expected:
+            raise ValueError(
+                f'slot_history must have shape {expected}, '
+                f'got {tuple(slot_history.shape)}'
+            )
 
         if self.read_mode == 'mean_pool':
             workspace_context = slot_history.mean(dim=-2)
@@ -106,13 +134,12 @@ class LatentWorkspace(nn.Module):
         else:
             reported_gate = gate
 
-        present_slots = slot_history[:, -1]
         diagnostics = WorkspaceDiagnostics(
             gate_mean=reported_gate,
-            workspace_norm=present_slots.float().norm(dim=-1).mean(),
+            workspace_norm=slot_history[:, -1].float().norm(dim=-1).mean(),
             num_slots=self.num_slots,
         )
-        return updated, present_slots, diagnostics
+        return updated, diagnostics
 
     def count_parameters(self) -> int:
         return sum(parameter.numel() for parameter in self.parameters())

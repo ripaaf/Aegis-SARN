@@ -184,11 +184,23 @@ The update is causal: each position can use only the accumulated slot state from
 
 The workspace is disabled by default. Configured variants include a no-writeback null control and normal two-slot/four-slot paths. Diagnostics report only mechanical quantities such as slot count, gate mean, workspace norm, parameters, and runtime.
 
-This prototype is not graph message passing, working memory, persistent memory, human-like concepts, or evidence of reasoning. It remains an experimental mechanism inside the SARN-Dense research harness, evaluated against the disabled control through matched sweeps, reports, and correctness gates.
+The Phase 5-only path is not graph message passing, working memory, persistent memory, human-like concepts, or evidence of reasoning. It remains an experimental mechanism inside the SARN-Dense research harness, evaluated against the disabled control through matched sweeps, reports, and correctness gates.
 
-### Future Phase 6+ Hypothesis
+### Phase 6 Graph Message-Passing Prototype
 
-A future workspace-and-graph experiment may test whether several bounded internal cycles improve selected structural tasks compared with spending the same compute only on deeper token transformations. This is a proposal, not part of the Phase 5 implementation.
+Phase 6 adds an optional bounded graph transformation after causal workspace-slot accumulation and before slot read/writeback. It is disabled by default, requires the Phase 5 workspace, and runs for an explicitly configured positive number of cycles. The default SARN-Dense and workspace-only paths remain unchanged controls.
+
+Each cycle uses a row-normalized edge matrix to aggregate projected source-slot messages, transforms the result, and applies a gated scaled residual. Implemented edge modes are exact no-op edges, learned dense edges, optional learned top-k sparse edges, a frozen identity matrix, and a deterministic shuffled matrix. Cycles share the small projection/update module.
+
+Diagnostics report cycle count, edge mode, optional top-k, gate mean, message norm, slot norm, and parameters. The generation cache stores the pre-graph causal accumulator so cached and full-prefix decoding apply the same transformation at each position.
+
+The matched Phase 6 sweep includes dense-control, workspace-control, graph-null, graph-identity, and learned-dense one/two-cycle variants. It evaluates the existing repeated-pattern fixture and four deterministic structural fixtures. The gate verifies correctness and measurement readiness; it does not require a graph variant to beat the baseline.
+
+This module performs learned tensor computation only. It is not resettable working memory, persistent memory, online weight mutation, formal symbolic logic, proof of human-like reasoning, or a complete SARN-Hybrid implementation. No tool, retrieval, policy, or side-effect capability is enabled.
+
+### Further Graph Hypothesis
+
+Later experiments may test whether bounded internal cycles improve selected structural tasks compared with spending the same compute only on deeper token transformations. The Phase 6 implementation makes this measurable but does not establish a gain.
 
 ### Proposed Mechanism
 
@@ -217,7 +229,7 @@ Nodes are latent slots until interpretability evidence supports more. Scores are
 - no writeback;
 - performance by reasoning-chain length and distribution shift.
 
-The module is accepted only if gains survive several seeds and cannot be explained by additional parameters, training tokens, or test contamination.
+The graph hypothesis is accepted only if gains survive several seeds and cannot be explained by additional parameters, training tokens, or test contamination. Phase 6 implementation alone does not satisfy that evidence gate.
 
 ## 8. Working-Memory Track
 

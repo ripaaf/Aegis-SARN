@@ -1,0 +1,526 @@
+# The Algorithms Behind Fast AI Models (2026 Landscape)
+
+This is a field guide to the algorithms and frameworks that actually make modern AI models fast — both when they're being **trained** and when they're **running (inference)**. I've grouped them by the bottleneck they attack, since that's the easiest way to understand why each one exists.
+
+---
+
+## 1. Decoding Algorithms (speed up *text generation*, token by token)
+
+LLMs normally generate one token at a time, and each step is memory-bandwidth-bound rather than compute-bound — the GPU spends most of its time waiting for weights to load, not doing math. <cite index="7-1">This memory-bound characteristic is exactly what speculative decoding exploits: since the bandwidth cost is being paid per step anyway, you might as well verify several tokens at once instead of one.</cite>
+
+- **Speculative Decoding (original, 2022–2023)** — Uses a small, fast "draft" model to guess several tokens ahead, then the big "target" model verifies them all in a single parallel pass. <cite index="8-1">It speeds up generation without changing the output distribution at all — the result is mathematically identical to normal decoding, just faster.</cite> <cite index="7-1">The original paper showed 2–3x speedups on translation and summarization, and by 2025–2026 it moved from a research trick into a standard feature built into vLLM, SGLang, and TensorRT-LLM.</cite>
+- **Medusa** — <cite index="10-1">Instead of using a separate draft model, Medusa bolts extra prediction heads directly onto the target model, removing the need for a second model entirely.</cite> <cite index="11-1">It combines this with a tree-structured attention mechanism and reaches up to 3.6x decoding speedups.</cite>
+- **EAGLE / EAGLE-2** — Predicts future tokens at the feature (hidden-state) level rather than the token level, which is more accurate than Medusa's approach, and EAGLE-2 adds dynamically-sized draft trees that adapt to how confident the draft is.
+- **Draft & Verify (self-speculative decoding)** — <cite index="10-1">Skips selected intermediate layers of the same model to produce cheap drafts, giving up to a 2x speedup with no extra training required.</cite>
+- **Online Speculative Decoding** — <cite index="10-1">Keeps adapting the draft model during live serving so its guesses get better as it sees more traffic, raising the token-acceptance rate over time.</cite>
+- **SpecExec / Speculative Streaming / PEARL / SmartSpec / Token Recycling** — A wave of 2024–2026 variants tuned for specific constraints: SpecExec targets consumer-grade GPUs, Speculative Streaming overlaps drafting and verification, PEARL adjusts how many tokens to draft on the fly, and SmartSpec schedules requests based on a "goodput" metric rather than raw throughput.
+
+**Bottom line:** this whole family buys you roughly 2–4x faster generation for "free" — same output quality, same model — by trading idle memory bandwidth for extra (sometimes wasted) compute.
+
+---
+
+## 2. Attention & Memory-Management Algorithms
+
+- **FlashAttention (1, 2, 3, and a 2026 "FlashAttention-4")** — <cite index="19-1">A systems-level rework of the attention computation that avoids ever materializing the full attention matrix in slow GPU memory, tackling attention's memory and I/O bottlenecks directly rather than through raw compute.</cite> <cite index="17-1">The original approach accelerated self-attention by 2–4x while cutting memory operations by 10–20x, and FlashAttention-2 doubled that again through better tiling.</cite> FlashAttention-3 (2024) added asynchrony and low-precision math for Hopper-generation GPUs, and a FlashAttention-4 has since been proposed with kernel pipelining designed for newer, asymmetric hardware.
+- **PagedAttention (vLLM)** — <cite index="20-1">Borrows the concept of OS-style virtual memory paging to manage the KV cache, so memory doesn't need to be reserved upfront for the theoretical maximum sequence length.</cite> <cite index="21-1">This achieves near-zero wasted memory versus the old approach of pre-allocating large contiguous chunks.</cite>
+- **FlashInfer / ChunkAttention** — Kernel libraries built on the same tiling ideas but optimized specifically for the *decode* phase (where FlashAttention is less effective, since only one query token is processed per step) and for sharing cached prefixes across many concurrent requests via a prefix tree.
+- **StreamingLLM / Attention Sinks, DuoAttention, Quest, H2O** — A cluster of techniques for handling very long context cheaply by keeping only the "important" parts of the KV cache in memory: a few fixed "sink" tokens plus a sliding recent window, retrieval-style sparse attention, or heavy-hitter token eviction.
+
+---
+
+## 3. KV-Cache Compression & Reuse
+
+As context windows grow, the KV cache (not the model weights) becomes the memory bottleneck. <cite index="21-1">This has spawned three broad optimization directions: memory management (PagedAttention and its descendants), computational reuse, and outright compression.</cite>
+
+- **Radix-tree / prefix caching (SGLang's RadixAttention)** — <cite index="21-1">Shares cache across requests using prefix trees with dynamic eviction, so identical prompt prefixes (like a shared system prompt) are only computed once.</cite>
+- **CachedAttention / GPTCache / SCALM** — Reuse cached results across conversation turns, or even across *semantically similar* prompts rather than only byte-identical ones.
+- **KV-cache quantization (e.g., FP8 or lower-bit KV caches, AsymKV, TriAxialKV)** — Stores the cache itself in 8-bit or even sub-4-bit precision, since KV tensors tolerate more aggressive quantization than model weights do.
+- **InfiniGen / LayerKV / FastDecode** — Offload parts of the cache to CPU memory or prefetch intelligently, trading some latency for the ability to serve far longer contexts on the same GPU.
+
+---
+
+## 4. Quantization (shrinking the model itself)
+
+<cite index="27-1">Quantization compresses model weights from 16-bit floats down to 8-bit, 4-bit, or lower, which is what makes it practical to run large models on consumer or on-premise hardware.</cite> The main formats you'll see in 2026:
+
+- **GPTQ** — <cite index="33-1">Quantizes a weight matrix column by column, using the Hessian matrix to adjust the remaining unquantized weights and minimize the resulting error.</cite> <cite index="27-1">It's the standard choice for GPU-centric production inference where throughput matters most.</cite>
+- **AWQ (Activation-aware Weight Quantization)** — <cite index="28-1">Focuses on protecting the specific weights tied to unusually large activation values, since those matter disproportionately for output quality.</cite> <cite index="27-1">It's especially strong for reasoning-heavy tasks and quantizes faster than GPTQ.</cite>
+- **SmoothQuant** — <cite index="28-1">Shifts the difficulty of quantization from activations onto weights via a mathematical transform, which is what makes practical 8-bit weight-and-activation (W8A8) quantization possible.</cite>
+- **GGUF (llama.cpp ecosystem)** — The most portable format, built for mixed CPU/GPU or CPU-only inference; easiest to get running on ordinary hardware.
+- **FP8** — <cite index="29-1">The dominant format on 2026-era hardware (H100/H200/B200), since native hardware support gives it the best throughput-per-quality of any current format.</cite>
+- **QuIP / QuIP# / AQLM** — Push quantization down to the 2-bit range using learned codebooks and vector quantization rather than simple rounding.
+- **LLM.int8(), SqueezeLLM, ZeroQuant(4+2)/FP6** — Earlier and alternative approaches that preserve numerical outliers separately (in higher precision) so the bulk of the model can be compressed more aggressively without breaking down.
+
+**Rule of thumb from current benchmarks:** <cite index="29-1">quality loss from quantization is roughly inversely proportional to model size — models above 30B parameters tolerate 4-bit quantization with under 2% quality loss on most benchmarks, while models under 7B often need 5- or 6-bit precision to avoid a noticeable hit.</cite>
+
+---
+
+## 5. Mixture-of-Experts (MoE) — sparse architecture, not just an optimization trick
+
+<cite index="40-1">MoE is a neural network architecture that routes each input token to a small subset of specialized sub-networks ("experts") instead of activating the entire model for every token, letting a model carry a huge amount of knowledge while spending only a fraction of the compute to use it per token.</cite>
+
+- **Switch Transformer** — <cite index="39-1">One of the earliest transformer-based MoE designs, replacing the standard feed-forward layer with a "switching layer" that routes each token to just one expert (top-1 routing), which simplified training and improved stability.</cite>
+- **GShard** — <cite index="38-1">Introduced more flexible multi-expert top-k routing, improving specialization and load balance across experts.</cite>
+- **Mixtral** — <cite index="38-1">Refined routing stability and expert utilization through auxiliary balancing losses, using top-2 routing as the most common balance point between overhead and richness.</cite>
+- **DeepSeek-MoE / DeepSeek-V3** — <cite index="38-1">Introduced globally shared experts that scale efficiently across devices.</cite> <cite index="40-1">DeepSeek-V3 uses top-8 routing out of 256 total experts, activating only 37 billion of its 671 billion total parameters per token.</cite>
+- **Expert-choice routing, dynamic-k routing, routing-free / ReLU-gated MoE** — A 2025–2026 wave of research replacing the traditional learned router with alternatives — letting experts pick tokens instead of vice versa, adjusting how many experts activate per token based on difficulty, or removing the router network altogether in favor of similarity-based or parameter-free assignment.
+
+---
+
+## 6. Training & Fine-Tuning Acceleration (Parameter-Efficient Fine-Tuning)
+
+- **LoRA (Low-Rank Adaptation)** — <cite index="48-1">Freezes the original pretrained weights and injects small trainable low-rank matrices into each layer instead of updating the full weight matrix.</cite> <cite index="44-1">This cuts trainable parameters down to roughly 0.1–1% of the total while recovering 90–95% of full fine-tuning quality.</cite>
+- **QLoRA** — <cite index="44-1">Adds 4-bit quantization of the frozen base model on top of LoRA, cutting VRAM needs by around 75%</cite> — <cite index="46-1">it backpropagates gradients through the frozen 4-bit model into the small LoRA adapters sitting on top.</cite>
+- **DoRA** — <cite index="47-1">Decomposes pretrained weights into magnitude and direction components and applies LoRA specifically to the directional part, outperforming standard LoRA.</cite>
+- **VeRA, LoRA-FA, AdaLoRA, LoftQ** — Further squeeze the parameter budget: VeRA shares a single pair of low-rank matrices across all layers, LoRA-FA freezes one of the two adapter matrices, AdaLoRA prunes less-important components during training, and LoftQ finds a better quantized starting point specifically so LoRA adapts more cleanly on top of it.
+- **Reinforcement Fine-Tuning (RFT)** — <cite index="53-1">A 2026 shift in fine-tuning philosophy: rewarding a model for reaching a verifiably correct outcome rather than just imitating a labeled reference answer, particularly for reasoning, math, and code tasks.</cite>
+
+---
+
+## 7. Image / Video Generation Acceleration (diffusion models)
+
+Diffusion and flow-matching models generate content through dozens to hundreds of iterative denoising steps — the equivalent bottleneck to autoregressive decoding, but per-*image* rather than per-*token*.
+
+- **DDIM** — <cite index="59-1">Introduced a deterministic, non-Markovian sampling process that preserves quality with far fewer steps than the original diffusion formulation.</cite>
+- **DPM-Solver / DEIS** — <cite index="56-1">Higher-order ODE solvers that push step counts down to roughly 10–20 without requiring any additional training, though quality tends to break down below that.</cite>
+- **Consistency Models** — <cite index="59-1">Learn a direct mapping that enables one-step or few-step generation by enforcing self-consistency along the same diffusion trajectory.</cite>
+- **Progressive Distillation** — <cite index="56-1">Repeatedly halves the number of sampling steps by training a student model to match the teacher's two-step output, iterating this down to a very small step count.</cite>
+- **Phased Consistency Models (PCM) / TrigFlow (sCM)** — <cite index="58-1">Later variants that improve training stability through phased strategies or continuous-time formulations.</cite>
+- **Feature caching (e.g., LearniBridge-style approaches)** — A training-free acceleration path that reuses intermediate features across denoising steps rather than recomputing them, since diffusion steps are often highly redundant with their neighbors.
+
+---
+
+## 8. Serving Frameworks That Bundle All of This Together
+
+You rarely implement these algorithms yourself — you pick a serving engine that already has most of them built in:
+
+- **vLLM** — <cite index="7-1">The easiest starting point for production serving, with PagedAttention, continuous batching, and speculative decoding all built in.</cite>
+- **SGLang** — <cite index="7-1">Offers marginally better performance at moderate concurrency and a stronger draft-model training story for speculative decoding.</cite>
+- **TensorRT-LLM** — <cite index="7-1">Makes the most sense if you're already committed to the NVIDIA ecosystem on H100/H200/B200-class hardware.</cite>
+
+And critically, these techniques **stack**: <cite index="7-1">combining FP8 quantization with speculative decoding produced a measured 3.6x total improvement on Llama 3.1-405B, because quantization speeds up each individual pass while speculative decoding reduces how many passes are needed — the effects multiply rather than simply add.</cite>
+
+---
+
+## How they fit together (mental map)
+
+| Bottleneck | Algorithms that attack it |
+|---|---|
+| Too many sequential decode steps | Speculative decoding, Medusa, EAGLE |
+| Attention is slow / memory-hungry | FlashAttention family, PagedAttention |
+| KV cache grows unbounded with context | Attention sinks, H2O, KV quantization, prefix caching |
+| Model weights too large to fit/load | GPTQ, AWQ, GGUF, FP8, QuIP# |
+| Model has too many parameters to activate | Mixture-of-Experts |
+| Fine-tuning is too expensive | LoRA, QLoRA, DoRA |
+| Image/video generation needs too many steps | DDIM, DPM-Solver, Consistency Models, distillation |
+
+If you want, I can go deeper on any one category — e.g. walk through exactly how speculative decoding's math guarantees identical output quality, or break down DeepSeek-V3's specific MoE routing design.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Searched the web
+Searched the web
+The user is looking for research on advanced techniques to run massive 300B parameter models on consumer hardware like an RTX 4060, and they're working on a project called Aegis-SARN on GitHub that I should check out. I need to explore their repo first, then dive into cutting-edge approaches like model offloading, extreme quantization methods like 1-bit and ternary quantization, mixture of experts with expert offloading, and extensions to PagedAttention.
+
+I should search for recent breakthroughs in running large LLMs on consumer GPUs, including projects like llama.cpp, AirLLM, PowerInfer, and FlexLen, along with emerging techniques like state space models and sub-quadratic architectures that could be game-changers. I'll also look specifically for 2026 breakthroughs in this space and fetch their GitHub repo to understand what they're building so I can give tailored feedback.
+
+Show more
+
+GitHub - ripaaf/Aegis-SARN
+github.com
+
+I'm understanding the scope now—this is a rigorous research codebase built entirely in Python with a sophisticated architecture combining sparse mixture-of-experts, state-space models, and attention mechanisms. The user wants to explore C-based optimizations to achieve extreme model compression and memory efficiency, specifically targeting running 300-billion-parameter models within 8GB of VRAM through novel algorithmic breakthroughs.
+
+I need to dig into the latest techniques for fitting massive models on consumer hardware: offloading strategies like PowerInfer and AirLLM, quantization approaches including 1-bit and ternary methods, and how state-space models like Mamba could reduce memory footprint. I should also investigate expert-level offloading for mixture-of-experts architectures and search for any 2026 research that's pushing the boundaries of extreme compression on limited hardware.
+
+Show more
+
+run 300B parameter LLM on single consumer GPU 8GB offloading breakthrough 2026
+7 results
+
+
+Local LLM Hardware Requirements in 2026 | AI Hub
+overchat.ai
+
+Best NVIDIA GPUs for LLMs in 2026: Ranked by Use Case | Spheron Blog
+www.spheron.network
+
+SpecExec: Massively Parallel Speculative Decoding for Interactive LLM Inference on Consumer Devices
+arxiv.org
+
+Local LLM Hardware Requirements 2026: 8GB to 70B by VRAM
+www.promptquorum.com
+
+What LLM Can I Run on My GPU? 2026 VRAM Tiers — TechFuel HQ
+techfuelhq.com
+
+Minimum VRAM for Local LLMs in 2026: GPU Tiers Tested
+www.kunalganglani.com
+
+Best VRAM Cheat Sheet for Local LLMs: Every Model, Every Quant | InsiderLLM
+insiderllm.com
+Done
+Now let's dig into the specific offloading algorithms — PowerInfer, AirLLM, FlexGen — plus 1-bit/ternary quantization breakthroughs.
+
+
+Searched the web
+Searched the web
+
+PowerInfer AirLLM FlexGen sparse activation offloading algorithm consumer GPU
+9 results
+
+Published as a conference paper at ICLR 2026 DYNAMICINFER: RUNTIME-AWARE SPARSE
+openreview.net
+
+PowerInfer: Fast Large Language Model Serving with a Consumer-grade GPU
+arxiv.org
+PowerInfer: Fast Large Language Model Serving with a Consumer-grade GPU
+dl.acm.org
+
+PowerInfer: Fast Large Language Model Serving with a Consumer-grade GPU | Request PDF
+www.researchgate.net
+
+PowerInfer: Fast Large Language Model Serving with a Consumer-grade GPU
+adsl-rg.github.io
+
+OOM-Free Alpamayo via CPU-GPU Memory Swapping for Vision-Language-Action Models
+arxiv.org
+
+PIPO: Pipelined Offloading for Efficient Inference on Consumer Devices
+arxiv.org
+
+[2312.12456] PowerInfer: Fast Large Language Model Serving with a Consumer-grade GPU
+ar5iv.labs.arxiv.org
+
+MoBiLE: Efficient Mixture-of-Experts Inference on Consumer GPU with Mixture of Big Little Experts
+arxiv.org
+Done
+Now let's cover 1-bit/ternary LLMs (BitNet) and native C/low-level kernel breakthroughs, plus SSM/Mamba as a fundamentally different architecture.
+
+
+Searched the web
+Searched the web
+
+BitNet b1.58 ternary 1-bit LLM breakthrough 2026 C implementation
+10 results
+
+
+GitHub - microsoft/BitNet: Official inference framework for 1-bit LLMs · GitHub
+github.com
+
+BitNet b1.58: Microsoft's 1-Bit LLM That Runs a 100B Model
+aratech.ae
+
+BitNet: 1-bit Pre-training for Large Language Models
+www.jmlr.org
+
+Litespark Inference For CPUs: Ultra-Fast SIMD Framework for Ternary (1.58-bit) Language Models
+arxiv.org
+
+BitNet: 1-bit Pre-training for Large Language Models
+jmlr.org
+
+💡The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits | by Khushi | Medium
+medium.com
+
+Mechanistic Interpretability of Binary and Ternary Transformers
+arxiv.org
+
+Matmul or No Matmul in the Era of 1-bit LLMs
+arxiv.org
+
+BitNet: Microsoft's 1-Bit LLMs That Run on Your CPU - DEV Community
+dev.to
+
+microsoft/bitnet-b1.58-2B-4T · Hugging Face
+huggingface.co
+Done
+Excellent — this is exactly the "base of the base" material. Now let's cover state-space models (Mamba, RWKV) and any newer sub-quadratic architecture breakthroughs, since your repo lists SSM/Mamba as future work.
+
+
+Architected comprehensive technical deep-dive spanning compression, quantization, and hybrid model optimization strategies
+Architected comprehensive technical deep-dive spanning compression, quantization, and hybrid model optimization strategies
+
+Mamba state space model linear attention RWKV 2026 breakthrough efficient architecture
+10 results
+
+
+Linear Attention Modeling for Learned Image Compression
+arxiv.org
+
+Hybrid Attention Models 2026: Mamba, Jamba, RWKV | Presenc AI
+presenc.ai
+
+Computation-Efficient Era: A Comprehensive Survey of State Space Models in Medical Image Analysis
+arxiv.org
+
+Efficient Attention Mechanisms for Large Language Models: A Survey
+arxiv.org
+
+Going Beyond LLMs & Transformers. Emerging Architectures for Efficient… | by Przemek Chojecki | Medium
+pchojecki.medium.com
+
+Demystify Mamba in Vision: A Linear Attention Perspective
+arxiv.org
+
+Longhorn: State Space Models are Amortized Online Learners
+arxiv.org
+
+Stuffed Mamba: Oversized States Lead to the Inability to Forget
+arxiv.org
+
+Insight Rumors: A Novel Textual Rumor Locating and Marking Model Leveraging Att_BiMamba2 Network
+arxiv.org
+
+Block-Biased Mamba for Long-Range Sequence Processing
+arxiv.org
+Looking at MoE and BitNet combinations for 2026, plus checking for C/C++ implementations like llama.cpp and GGML that could optimize kernel-level performance—especially relevant since the user mentioned wanting to use C for better algorithms. I should also search for cutting-edge papers combining SSM, MoE, and ternary quantization for extreme compression, which seems to be where this is heading.
+
+
+ternary MoE hybrid architecture 2026 sparse state space model combination extreme compression
+8 results
+
+
+MoE-Mamba: Sparse SSM Hybrid Models
+www.emergentmind.com
+
+Emerging Architecture Trends in 2026 Open-Weight AI Models | by Cihat Emre Karataş 💻 | Apr, 2026 | Medium
+emredeveloper.medium.com
+
+Ultra-Sparse Mixture-of-Experts Architecture
+www.emergentmind.com
+
+MoE Architecture: GPT, Claude, DeepSeek, Qwen Compared
+www.digitalapplied.com
+
+Hybrid Mamba-Transformer MoE: Three Teams, One Architecture -- The 2026 LLM Convergence | SOTAAZ Blog
+www.sotaaz.com
+
+ButterflyMoE: Compression-Scalable Ternary Experts via Structured Butterfly Orbits
+arxiv.org
+
+MoTE: Mixture of Ternary Experts for Memory-efficient Large Multimodal Models
+arxiv.org
+
+MoE-Mamba: Efficient Selective State Space Models with Mixture of Experts
+arxiv.org
+ButterflyMoE and MoTE represent exactly the kind of cutting-edge research the user is looking for—ternary quantization with structured rotations achieving massive memory reduction aligns perfectly with their goals. The convergence of Mamba, Transformers, and MoE architectures across recent models like NVIDIA Nemotron 3 Nano and Qwen 3.5 Small validates the SARN-H direction they're pursuing.
+
+I should also dig into low-level C and CUDA kernel optimization—specifically ggml and llama.cpp's foundational techniques for custom kernel design, since the user explicitly mentioned wanting to create breakthroughs through C-level algorithm improvements. Memory-mapping approaches like those in Apple's "LLM in a Flash" paper could be particularly relevant for flash storage inference optimization.
+
+Show more
+
+"LLM in a flash" Apple paper flash memory inference algorithm windowing
+10 results
+
+
+LLM in a Flash: Efficient Large Language Model Inference with Limited Memory - Apple Machine Learning Research
+machinelearning.apple.com
+
+[2312.11514] LLM in a flash: Efficient Large Language Model Inference with Limited Memory
+arxiv.org
+
+Paper page - LLM in a flash: Efficient Large Language Model Inference with Limited Memory
+huggingface.co
+
+LLM in a Flash: Efficient LLM Inference with Limited Memory | Hacker News
+news.ycombinator.com
+
+A Survey on Hardware Accelerators for Large Language Models
+arxiv.org
+
+LLM in a flash: Efficient Large Language Model Inference with Limited Memory
+arxiv.org
+
+Scaling Up On-Device LLMs via Active-Weight Swapping Between DRAM and Flash
+arxiv.org
+
+Apple's efficient inference of large language models on devices with limited memory capacity | AI-SCHOLAR | AI: (Artificial Intelligence) Articles and technical information media
+ai-scholar.tech
+
+Supercharging AI: How 'LLM in a Flash' Revolutionizes Language Model Inference on Memory-Limited Devices - Ajith Vallath Prabhakar
+ajithp.com
+
+LLM in a flash: Efficient Large Language Model Inference ...
+aclanthology.org
+Now I'm organizing everything into a comprehensive document that covers the speculative decoding mathematics and DeepSeek-V3's MoE routing strategy, plus adding a new section on extreme compression techniques for running large models on consumer hardware—including approaches like PowerInfer's neuron-level sparse activation with hot and cold weight splitting, along with other offloading strategies.
+
+I'm also diving into extreme quantization methods like ternary approaches and 2-bit schemes, MoE-specific offloading with expert swapping, and the architectural convergence toward hybrid SSM-Transformer-MoE designs that directly align with their SARN-Hybrid roadmap. The low-level engineering piece covers kernel optimization philosophy using C/C++ with SIMD operations and custom ternary arithmetic. I want to tie all of this back to their specific goals—showing how their planned architecture already anticipates the exact direction the field moved toward in early 2026 with models like Nemotron 3 Nano and Mamba-3 hybrids.
+
+I'm thinking a second markdown artifact makes more sense here given the technical depth and how it builds on what we've already covered. I also need to be realistic about the hardware constraints—running a genuine 300B dense model on 8GB VRAM isn't feasible even with all these techniques, though sparse MoE models with extreme quantization can get surprisingly close. BitNet at 100B can run on CPU at reasonable speeds, but that's different from fitting a full dense model into limited VRAM. I should acknowledge what's actually possible versus what's theoretical.
+
+I'm planning to structure this new artifact around the promised deep dives: speculative decoding math, DeepSeek-V3's routing strategy, the practical toolkit for squeezing massive models onto modest hardware (offloading, ternary quantization, MoE-native compression, flash memory tricks), and the emerging hybrid architectures that combine Mamba, Transformers, and MoE—all directly relevant to their proje…
+
+Show more
+
+Deep-dive research report on breakthrough/frontier algorithms for extreme model compression, offloading, and next-gen architectures for running huge models on tiny hardware
+Done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Breakthrough & Frontier Algorithms: Squeezing Huge Models onto Tiny Hardware
+
+I looked at your repo — Aegis-SARN is a serious, disciplined research program (evidence-gated phases, SARN-Dense as a scientific control, SARN-Hybrid targeting sparse MoE + SSM + a bounded latent workspace). That's directly relevant to everything below, so I'll tie it back to your roadmap at the end.
+
+First, the two deep-dives you asked for, then the breakthrough/frontier material.
+
+---
+
+## Part A: The two deep-dives you asked for
+
+### A1. Why speculative decoding is provably lossless
+
+The trick isn't approximation — it's a rejection-sampling argument. The draft model proposes tokens; the target model computes its *true* probability for each proposed token in one parallel pass. For each proposed token, you accept it with probability `min(1, p_target/p_draft)`. If rejected, you resample from a corrected residual distribution `max(0, p_target − p_draft)` (renormalized). <cite index="8-1">This guarantees the output distribution is mathematically identical to what the target model would have produced on its own — no quality is traded away, only wasted memory-bandwidth cycles are reclaimed.</cite> That's why it's such a clean win: it's not a compression trick, it's closer to a scheduling trick that happens to also be a probability-theory trick.
+
+The whole family (Medusa, EAGLE, PEARL, SpecExec) is really just different answers to "how do we generate good draft tokens cheaply?" — separate small model, extra prediction heads, feature-level prediction, adaptive draft length, or skipping the model's own middle layers.
+
+### A2. How DeepSeek-V3's MoE routing actually works
+
+<cite index="40-1">DeepSeek-V3 activates only 37 billion of its 671 billion total parameters per token, using top-8 routing out of 256 experts.</cite> The two ideas that make this stable (rather than just "pick 8 of 256 and hope"):
+
+- **Fine-grained experts**: instead of a few large experts, DeepSeek splits each expert into many smaller ones, so top-k selection can mix-and-match more precisely rather than being forced to swallow an entire large expert's whole "personality" for a token that only needs part of it.
+- **Shared experts**: <cite index="38-1">DeepSeek-MoE introduced globally shared experts that stay active for every token, scaling capacity across devices without needing every specialized expert to redundantly relearn common patterns.</cite> This is the fix for a classic MoE failure mode — every expert re-learning basic syntax/grammar because the router never guarantees it sees "common" tokens.
+
+<cite index="103-1">The industry trend since then has been aggressively shrinking the "sparsity ratio" (active/total parameters) — Mixtral sat around 28%, DeepSeek V3 dropped to 5.4%, and DeepSeek V4-Pro reportedly pushes to 3.1% (49B active out of 1.6T total).</cite> The pattern is clear: total parameter count is becoming almost a separate knob from compute cost, which is exactly the property you want if your goal is "smart model, small active footprint."
+
+---
+
+## Part B: The "squeeze a huge model onto tiny hardware" toolkit
+
+This is the real answer to your question. There is no single trick — there are four independent axes, and the actual breakthroughs come from **stacking** them. I'll go axis by axis.
+
+### B1. Offloading algorithms (keep weights off the GPU until needed)
+
+- **FlexGen (2023)** — <cite index="77-1">Treats GPU/CPU/disk placement as a search problem: an algorithm finds the optimal way to split weights, activations, and KV cache across the memory hierarchy, and overlaps computation with I/O so the GPU isn't just sitting idle waiting for data.</cite> This is "GPU-centric" offloading — everything eventually gets moved to the GPU to compute.
+- **llama.cpp (GGML)** — <cite index="75-1">A GPU-CPU hybrid approach: whole transformer layers are pinned to either GPU or CPU memory, and both devices do real computation, not just the GPU.</cite> Simple, robust, and the reason your 8GB RTX 4060 can run a 30B model at all today.
+- **PowerInfer — the actual breakthrough** — <cite index="72-1">Instead of offloading whole layers, PowerInfer offloads at the *neuron* level, exploiting the fact that LLM inference has a power-law activation pattern: a small set of "hot" neurons fire almost every time, and PowerInfer permanently preloads exactly those onto the GPU, while "cold" neurons that rarely fire stay on CPU and are computed there directly — skipping the expensive step of shipping their weights to the GPU at all.</cite> <cite index="72-1">The gain scales with how sparse the model's activations are — ReLU-family models can exceed 90% sparsity, which is where PowerInfer shines most.</cite> <cite index="75-1">Result: PowerInfer can hold a 70B model on a single RTX 4090 where AWQ alone tops out around 30B.</cite>
+- **LLM in a Flash (Apple, 2024)** — This is the one worth studying closely if you're going lower-level. <cite index="108-1">It treats SSD/flash storage itself as the extended memory tier and introduces two specific tricks: "windowing," which reuses neurons that were already active in the previous token so only the *difference* needs to be loaded, and "row-column bundling," which restructures how weight matrices are laid out on disk so that flash's strength — large sequential reads — is exploited instead of fighting it.</cite> <cite index="108-1">Combined, these let a model run at up to twice the size of available DRAM, with 4–5x speedup on CPU and 20–25x on GPU versus naive on-demand loading.</cite> This is a genuinely hardware-aware algorithm — it was designed by first building a cost model of *how flash memory physically behaves*, then deriving the algorithm from that. That's the "base of the base" mindset you're describing.
+- **MoE-specific offloading (MoBiLE, DynamicInfer)** — <cite index="79-1">For MoE models specifically, the strategy is to keep only actively-routed experts resident on GPU and dynamically fetch newly-selected experts from CPU on demand — exploiting the fact that MoE sparsity is even more extreme and more predictable than dense-model neuron sparsity.</cite> <cite index="71-1">DynamicInfer's specific critique of PowerInfer is that a *static* hot/cold split (decided once, offline) is suboptimal because which neurons are actually "hot" shifts depending on the current prompt — so it replaces the static split with a lightweight online scheduler that adapts in real time.</cite> That's a good example of the next research increment: yesterday's breakthrough's fixed assumption becomes tomorrow's bottleneck.
+
+### B2. Extreme quantization (make each parameter cost almost nothing)
+
+This is the one most directly relevant to "300B on 8GB," because it attacks the *storage* problem, not just the movement problem.
+
+- **BitNet b1.58 — the real paradigm shift** — <cite index="82-1">Rather than quantizing a model after training (which always loses some accuracy), BitNet trains the model natively with ternary {-1, 0, +1} weights from scratch, using a drop-in "BitLinear" replacement for the standard linear layer.</cite> <cite index="85-1">The name comes straight from information theory: representing three states requires log₂(3) ≈ 1.58 bits, which is provably the minimum needed — this isn't a rounded-off approximation, it's an exact, optimal encoding for a 3-state system.</cite> <cite index="84-1">At 3B parameters, BitNet b1.58 already matches full-precision LLaMA on both perplexity and end-task accuracy while using 3.55x less memory and running 2.71x faster, and the gap to full precision keeps narrowing as scale increases.</cite>
+- **Why this matters mechanically**: <cite index="87-1">Because weights are restricted to {-1, 0, +1}, the core matrix-multiply operation degenerates into pure addition and subtraction — no multiplication hardware is needed at all for the bulk of the model (attention layers still need higher precision to preserve quality).</cite> This is the actual "new algorithm using C" territory: bitnet.cpp isn't running quantized-int8-emulated-as-float, it's running custom SIMD kernels that exploit the fact that a ternary weight times an activation is just "add it, subtract it, or skip it."
+- **The measured payoff**: <cite index="80-1">bitnet.cpp achieves 1.37x–6.17x speedups depending on CPU architecture, cuts energy use by up to 82%, and — the headline number — can run a 100B-parameter BitNet model on a single ordinary CPU at 5–7 tokens/second, roughly human reading speed, with no GPU involved at all.</cite>
+- **What this means for your 8GB-VRAM question, honestly**: BitNet's 100B-on-CPU result uses system RAM, not 8GB of VRAM — a 100B ternary model still needs roughly 25–35GB of *some* kind of memory (RAM or disk-backed via mmap). Nobody has broken the law that a model needs to store its parameters somewhere. What BitNet actually breaks is the assumption that "somewhere" has to be expensive, fast VRAM. Combine it with offloading (Section B1) and you get the real answer to your question: a 300B *ternary, sparse-MoE* model, with most weights resident in ordinary system RAM or even NVMe SSD and only the active slice touching your 8GB card, is the only currently-plausible path — not a dense 300B model squeezed whole into 8GB, which no algorithm today achieves without destroying the model.
+
+### B3. Combining ternary weights with MoE — where the frontier actually is right now
+
+This is the newest, least-settled territory, and it's extremely close to what SARN-Hybrid is aiming at.
+
+- **ButterflyMoE (2026)** — <cite index="105-1">Directly attacks the fact that in standard MoE, memory grows linearly with the number of experts, which is the real wall for edge deployment. It combines ternary quantization with structured "Butterfly" rotations to represent each expert far more compactly, achieving O(d² + N·d·log d) memory scaling instead of the usual linear-in-experts cost.</cite> <cite index="105-1">Reported result: a perplexity of 81.19 using only 0.40MB of expert memory — an 80x memory reduction versus standard approaches — and critically, the resulting workload becomes compute-bound rather than memory-bound on edge processors, which is the regime you actually want to be in.</cite>
+- **MoTE (Mixture of Ternary Experts)** — Applies the same "ternary weights, but now for a whole population of experts instead of one dense model" idea specifically for multimodal models, aimed at the same memory bottleneck.
+- **Why this direction is promising for you specifically**: your working rule "sparse activation reduces active computation, not necessarily storage or memory traffic" is *exactly* the problem ButterflyMoE and MoTE are trying to solve — sparse MoE alone doesn't shrink the disk/RAM footprint, only the compute. Pairing MoE sparsity with ternary/low-rank expert compression is the only way to shrink both at once.
+
+### B4. Architecture-level breakthroughs (change what "a layer" even computes)
+
+- **State Space Models (Mamba, Mamba-2)** — <cite index="104-1">Instead of every token attending to every other token (Transformers' quadratic cost), SSMs compress all prior context into a fixed-size state that updates sequentially as new tokens arrive — like working from summary notes instead of keeping every textbook open.</cite> <cite index="94-1">Mamba's key innovation over earlier SSMs was making the state-transition matrices input-dependent ("selective"), which is what let it finally match Transformer-level language quality while keeping linear-time, constant-memory inference.</cite>
+- **RWKV** — <cite index="93-1">An independently-evolved RNN-style architecture; its recent generations (Finch/RWKV-6, Goose/RWKV-7) added dynamic recurrence and delta-rule-style state updates to handle more complex, data-dependent transitions, closing much of the gap with attention.</cite>
+- **The March 2026 convergence — this is the one to pay closest attention to**: <cite index="104-1">Three independent teams (NVIDIA, Alibaba/Qwen, and the original Mamba research group) arrived at essentially the same architectural conclusion within the same month: don't use pure Transformer or pure SSM — mix roughly 75% linear (SSM) layers with 25% attention layers, and add MoE routing on top.</cite> <cite index="104-1">NVIDIA shipped this as Nemotron 3 Nano, Qwen shipped it as the 3.5 Small series, and the Mamba group presented the theoretical case as "Mamba-3" at ICLR 2026.</cite> <cite index="91-1">Production deployments like Jamba 1.5 Large (398B total / 94B active, Transformer+Mamba MoE hybrid) already validate this at scale, with pure-SSM or pure-attention models each underperforming the hybrid on their respective weak points.</cite>
+
+**This is directly validating for your project.** SARN-Hybrid's target combination — sparse MoE + SSM (listed explicitly in your "future work") + a bounded latent workspace on top of a GQA-attention control — is not a speculative combination you're inventing from scratch; it's the same direction three well-resourced independent teams converged on within weeks of each other in the same period. Your evidence-gated methodology (measure everything against SARN-Dense before accepting a mechanism) is exactly the right way to find out whether your specific instantiation of that idea earns its complexity.
+
+---
+
+## Part C: The realistic answer to "300B on an RTX 4060 8GB"
+
+I want to give you the honest engineering picture rather than a hype answer, since you're actually building this:
+
+| Approach | What it actually gets you |
+|---|---|
+| Dense 300B, any quantization | **Not possible on 8GB VRAM alone.** Even at 1.58 bits, 300B parameters is ~56GB minimum just for weights. No algorithm changes that arithmetic for a dense model. |
+| Dense 300B + full offloading (RAM/SSD) | Technically runs, but <cite index="67-1">real-world benchmarks on far smaller "extreme" MoE cases already show only 3–9 tokens/second even with hundreds of GB of combined VRAM+RAM</cite> — a dense 300B fully offloaded to an 8GB card plus modest RAM would be far slower than that, likely sub-1 tok/s. |
+| **Sparse MoE 300B (e.g. ~20-40B active) + ternary experts + neuron/expert-level offloading** | **This is the actually-plausible path**, and it's the one the frontier is building toward (Section B3). Active experts stay resident on the 8GB card; the rest sits in system RAM or NVMe via something like PowerInfer's or LLM-in-a-Flash's access patterns; ternary/ButterflyMoE-style compression keeps the resident footprint of *inactive* experts small enough that swapping them in is cheap when the router does select them. |
+| **BitNet-native 300B, sparse-MoE, purpose-built kernels** | The frontier nobody has fully built yet — this is genuinely open research territory, and it's very close to what your "Aegis-X" long-term hypothesis is reaching for. |
+
+The honest bottleneck isn't algorithmic cleverness at this point — it's that **nobody has yet trained a large, natively-ternary, natively-sparse-MoE frontier model** combining all of B2+B3+B4 at once. BitNet models today are dense. MoE models today are mostly FP8/BF16 or post-hoc quantized. The specific combination is where a real breakthrough is still sitting on the table.
+
+---
+
+## Part D: On writing this in C — what actually earns you speed at that level
+
+If you go down to hand-written C for a novel algorithm, the wins that have actually mattered historically are:
+
+1. **Match the algorithm to the memory hierarchy, not the other way around** — this is the single idea underlying FlashAttention, PagedAttention, and LLM-in-a-Flash. Each started from "how does this specific hardware actually move data" and derived the algorithm from that, rather than writing a clean algorithm and hoping the hardware cooperates.
+2. **Turn multiplication into cheaper ops when the math allows it** — BitNet's whole speedup comes from replacing multiply-accumulate with add/subtract, because ternary weights make that mathematically valid. That's a genuine "new algorithm," not just a faster implementation of an old one.
+3. **Predict before you fetch, don't fetch and then decide** — PowerInfer's online neuron predictors and DejaVu's activation predictors both work by cheaply guessing "will this be needed" a few layers ahead of time, so the expensive fetch/compute only happens for things very likely to matter.
+4. **Design for your actual sparsity pattern, not sparsity in the abstract** — <cite index="79-1">MoE-specific offloading exists as its own research area precisely because MoE sparsity and dense-model neuron sparsity behave differently enough that generic offloading tools designed for dense models waste effort fetching whole experts unnecessarily.</cite> If SARN-Hybrid's latent workspace and expert routing have a distinctive sparsity signature, a purpose-built C kernel tuned to *that specific pattern* will beat a generic one — same lesson as PowerInfer vs. plain llama.cpp.
+
+---
+
+If you want, I can go one level deeper on any single piece — e.g. actually sketch out how a PowerInfer-style hot/cold neuron split would interact with your Phase 5 latent-workspace slots, or dig into the exact BitLinear kernel implementation in bitnet.cpp line by line.
+
+
+
+
+
+
+
+

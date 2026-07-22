@@ -116,6 +116,8 @@ def evaluate_tasks(
         'examples_per_task': batch_size,
         'sequence_length': sequence_length,
     }
+    metrics.update(model.workspace_metrics())
+    metrics.update(model.graph_metrics())
     trace.emit('eval_tasks.completed', 'eval.tasks', {'status': 'completed'})
 
     configuration = {

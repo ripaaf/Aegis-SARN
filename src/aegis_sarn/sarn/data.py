@@ -169,6 +169,129 @@ def rule_following_batch(
     return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'rule_following')
 
 
+def relation_chain_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    '''Encode two linked relations followed by a start/endpoint query.'''
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    edge_token, query_token, answer_token = 24, 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        nodes = (torch.randperm(8, generator=generator)[:3] + 1).tolist()
+        a, b, c = (int(node) for node in nodes)
+        pattern = [
+            a, edge_token, b,
+            b, edge_token, c,
+            query_token, a, answer_token, c,
+        ]
+        rows.append(
+            torch.tensor(_repeat_to_length(pattern, sequence_length + 1))
+        )
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'relation_chain')
+
+
+def route_propagation_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    '''Encode a three-hop route and query its reachable endpoint.'''
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    route_token, query_token, answer_token = 24, 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        nodes = (torch.randperm(10, generator=generator)[:4] + 1).tolist()
+        a, b, c, d = (int(node) for node in nodes)
+        pattern = [
+            a, route_token, b,
+            b, route_token, c,
+            c, route_token, d,
+            query_token, a, answer_token, d,
+        ]
+        rows.append(
+            torch.tensor(_repeat_to_length(pattern, sequence_length + 1))
+        )
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'route_propagation')
+
+
+def slot_binding_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    '''Encode key/value bindings, a distractor, and a selected-key query.'''
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    bind_token, query_token, answer_token = 24, 25, 26
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        keys = (torch.randperm(6, generator=generator)[:3] + 1).tolist()
+        values = (torch.randperm(6, generator=generator)[:3] + 10).tolist()
+        target_index = int(
+            torch.randint(0, 3, (1,), generator=generator).item()
+        )
+        pattern: list[int] = []
+        for key, value in zip(keys, values, strict=True):
+            pattern.extend([int(key), bind_token, int(value)])
+        pattern.extend(
+            [
+                query_token,
+                int(keys[target_index]),
+                answer_token,
+                int(values[target_index]),
+            ]
+        )
+        rows.append(
+            torch.tensor(_repeat_to_length(pattern, sequence_length + 1))
+        )
+    sequences = torch.stack(rows).long()
+    return ToyBatch(sequences[:, :-1], sequences[:, 1:], 'slot_binding')
+
+
+def length_extrapolation_batch(
+    batch_size: int = 8,
+    sequence_length: int = 32,
+    vocab_size: int = 256,
+    seed: int = 7,
+    split: str = 'train',
+) -> ToyBatch:
+    '''Use a longer deterministic route on validation/eval than on train.'''
+    _validate_task_shape(batch_size, sequence_length, vocab_size, minimum_vocab=32)
+    generator = torch.Generator().manual_seed(_split_seed(seed, split))
+    edge_token, query_token, answer_token = 24, 25, 26
+    edge_count = 2 if split == 'train' else 3
+    rows: list[Tensor] = []
+    for _ in range(batch_size):
+        nodes = (
+            torch.randperm(10, generator=generator)[: edge_count + 1] + 1
+        ).tolist()
+        pattern: list[int] = []
+        for source, target in zip(nodes[:-1], nodes[1:], strict=True):
+            pattern.extend([int(source), edge_token, int(target)])
+        pattern.extend(
+            [query_token, int(nodes[0]), answer_token, int(nodes[-1])]
+        )
+        rows.append(
+            torch.tensor(_repeat_to_length(pattern, sequence_length + 1))
+        )
+    sequences = torch.stack(rows).long()
+    return ToyBatch(
+        sequences[:, :-1], sequences[:, 1:], 'length_extrapolation'
+    )
+
+
 def toy_text_batch(
     batch_size: int = 8,
     sequence_length: int = 32,
@@ -203,10 +326,20 @@ TOY_TASK_FACTORIES: dict[str, TaskFactory] = {
     'modular_counting': modular_counting_batch,
     'bracket_structure': bracket_structure_batch,
     'rule_following': rule_following_batch,
+    'relation_chain': relation_chain_batch,
+    'route_propagation': route_propagation_batch,
+    'slot_binding': slot_binding_batch,
+    'length_extrapolation': length_extrapolation_batch,
 }
 
 
 TOY_TASK_NAMES = tuple(TOY_TASK_FACTORIES.keys())
+GRAPH_TASK_NAMES = (
+    'relation_chain',
+    'route_propagation',
+    'slot_binding',
+    'length_extrapolation',
+)
 
 
 def make_toy_task_batch(

@@ -97,7 +97,8 @@ def _workspace_sweep_markdown(summary: dict[str, Any]) -> str:
             '- Results use generated toy data and local CPU measurements.',
             '- Latent slots are learned tensor states, not human-like concepts.',
             '- This prototype is neither graph message passing nor persistent memory.',
-            '- SARN-Hybrid and Phase 6+ mechanisms are not implemented here.',
+            '- This Phase 5 artifact does not exercise the separate Phase 6 graph path.',
+            '- SARN-Hybrid and Phase 7+ mechanisms are not implemented here.',
         ]
     )
     return '\n'.join(lines) + '\n'
@@ -327,7 +328,8 @@ def _workspace_comparison_markdown(summary: dict[str, Any]) -> str:
             '- Local CPU speed is noisy and hardware-specific.',
             '- The balanced score is a simple documented heuristic.',
             '- These results are not evidence of human-like reasoning or memory.',
-            '- No graph message passing or persistent memory is implemented.',
+            '- No graph message passing is exercised by this Phase 5 report.',
+            '- No persistent or resettable memory is implemented.',
         ]
     )
     return '\n'.join(lines) + '\n'
@@ -436,7 +438,8 @@ def compare_workspace(input_dir: Path, output_dir: Path) -> dict[str, Any]:
                 'All variants share width, depth, attention, FFN, context, data, and seed.',
                 'Workspace slot count and writeback are the controlled variables.',
                 'Toy metrics do not demonstrate reasoning, concepts, or memory.',
-                'SARN-Hybrid and Phase 6+ modules remain unimplemented.',
+                'The separate Phase 6 graph path is not exercised by this report.',
+                'SARN-Hybrid and Phase 7+ modules remain unimplemented.',
             ],
         }
     )

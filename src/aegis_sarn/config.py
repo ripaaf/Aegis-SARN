@@ -31,6 +31,20 @@ class ModelConfig:
     workspace_gated_writeback: bool = True
     workspace_dropout: float = 0.0
     workspace_read_mode: Literal['cross_attention', 'mean_pool'] = 'cross_attention'
+    graph_enabled: bool = False
+    graph_num_cycles: int = 0
+    graph_edge_mode: Literal[
+        'none',
+        'learned_dense',
+        'learned_sparse',
+        'frozen_identity',
+        'shuffled',
+    ] = 'none'
+    graph_top_k: int | None = None
+    graph_gated_update: bool = True
+    graph_residual_scale: float = 1.0
+    graph_dropout: float = 0.0
+    graph_after_workspace: bool = True
 
     def __post_init__(self) -> None:
         positive = {
@@ -75,6 +89,42 @@ class ModelConfig:
             raise ConfigError(
                 'workspace_read_mode must be cross_attention or mean_pool'
             )
+        valid_graph_modes = (
+            'none',
+            'learned_dense',
+            'learned_sparse',
+            'frozen_identity',
+            'shuffled',
+        )
+        if self.graph_edge_mode not in valid_graph_modes:
+            raise ConfigError(
+                'graph_edge_mode must be none, learned_dense, learned_sparse, '
+                'frozen_identity, or shuffled'
+            )
+        if self.graph_num_cycles < 0:
+            raise ConfigError('graph_num_cycles cannot be negative')
+        if self.graph_top_k is not None:
+            if self.graph_top_k <= 0:
+                raise ConfigError('graph_top_k must be positive or None')
+            if self.graph_top_k > self.workspace_num_slots:
+                raise ConfigError('graph_top_k cannot exceed workspace_num_slots')
+        if self.graph_edge_mode == 'learned_sparse' and self.graph_top_k is None:
+            raise ConfigError('learned_sparse graph mode requires graph_top_k')
+        if not 0.0 <= self.graph_dropout < 1.0:
+            raise ConfigError('graph_dropout must be in [0, 1)')
+        if self.graph_residual_scale < 0.0:
+            raise ConfigError('graph_residual_scale cannot be negative')
+        if self.graph_enabled:
+            if not self.workspace_enabled:
+                raise ConfigError('graph_enabled requires workspace_enabled=True')
+            if self.graph_num_cycles <= 0:
+                raise ConfigError(
+                    'graph_num_cycles must be positive when graph is enabled'
+                )
+            if not self.graph_after_workspace:
+                raise ConfigError(
+                    'Phase 6 supports graph message passing only after slot accumulation'
+                )
 
     @property
     def head_dim(self) -> int:
@@ -266,6 +316,43 @@ class RunManifest:
             payload['workspace_num_slots'] = workspace_num_slots
             payload['workspace_gated_writeback'] = workspace_gated_writeback
             payload['workspace_variant_name'] = variant_name
+            graph_enabled = bool(self.model_config.get('graph_enabled', False))
+            graph_num_cycles = (
+                int(self.model_config.get('graph_num_cycles', 0))
+                if graph_enabled
+                else 0
+            )
+            graph_edge_mode = (
+                str(self.model_config.get('graph_edge_mode', 'none'))
+                if graph_enabled
+                else 'none'
+            )
+            graph_top_k = (
+                self.model_config.get('graph_top_k') if graph_enabled else None
+            )
+            graph_gated_update = graph_enabled and bool(
+                self.model_config.get('graph_gated_update', True)
+            )
+            graph_variant_name = self.command_args.get('graph_variant_name')
+            if not graph_variant_name:
+                if not workspace_enabled:
+                    graph_variant_name = 'dense-control'
+                elif not graph_enabled:
+                    graph_variant_name = 'workspace-control'
+                elif graph_edge_mode == 'none':
+                    graph_variant_name = 'graph-null'
+                elif graph_edge_mode == 'frozen_identity':
+                    graph_variant_name = 'graph-identity'
+                else:
+                    graph_variant_name = (
+                        f'graph-{graph_edge_mode}-cycle{graph_num_cycles}'
+                    )
+            payload['graph_enabled'] = graph_enabled
+            payload['graph_num_cycles'] = graph_num_cycles
+            payload['graph_edge_mode'] = graph_edge_mode
+            payload['graph_top_k'] = graph_top_k
+            payload['graph_gated_update'] = graph_gated_update
+            payload['graph_variant_name'] = graph_variant_name
         payload['timestamp'] = self.created_at
         payload['git_commit_hash'] = self.git_commit
         payload['config'] = {
@@ -285,6 +372,7 @@ class RunManifest:
             'SARN-Dense is the only implemented model path for this artifact.',
             'Toy generated data is for reproducibility checks, not language capability claims.',
             'SARN-Hybrid and advanced modules are not implemented in this run.',
-            'The optional latent workspace is not graph reasoning or persistent memory.',
+            'Workspace and graph states are transient; they are not persistent or resettable memory.',
+            'Graph message passing does not establish formal logic or human-like reasoning.',
         ]
         return payload

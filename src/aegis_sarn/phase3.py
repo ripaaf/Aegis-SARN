@@ -53,6 +53,16 @@ WORKSPACE_MANIFEST_FIELDS = frozenset(
         'workspace_variant_name',
     }
 )
+GRAPH_MANIFEST_FIELDS = frozenset(
+    {
+        'graph_enabled',
+        'graph_num_cycles',
+        'graph_edge_mode',
+        'graph_top_k',
+        'graph_gated_update',
+        'graph_variant_name',
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -763,6 +773,140 @@ def check_gates(
                         missing = ['unreadable']
                     add(
                         f'{name}:{manifest_name}_workspace_fields',
+                        not missing,
+                        'ok' if not missing else ', '.join(missing),
+                    )
+
+    if summary.get('command') == 'sweep-graph':
+        completed = [item for item in items if item.get('status') == 'completed']
+        dense_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'dense-control'
+            and item.get('workspace_enabled') is False
+            and item.get('graph_enabled') is False
+        ]
+        workspace_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'workspace-control'
+            and item.get('workspace_enabled') is True
+            and item.get('graph_enabled') is False
+        ]
+        graph_items = [
+            item for item in completed if item.get('graph_enabled') is True
+        ]
+        add(
+            'graph:all_variants_completed',
+            len(completed) == len(items),
+            f'{len(completed)} of {len(items)} completed',
+        )
+        add(
+            'graph:dense_control_present',
+            bool(dense_controls),
+            f'{len(dense_controls)} completed dense control(s)',
+        )
+        add(
+            'graph:workspace_control_present',
+            bool(workspace_controls),
+            f'{len(workspace_controls)} completed workspace control(s)',
+        )
+        add(
+            'graph:enabled_variant_present',
+            bool(graph_items),
+            f'{len(graph_items)} completed graph variant(s)',
+        )
+        add(
+            'graph:null_control_present',
+            any(item.get('config_name') == 'graph-null' for item in graph_items),
+            'graph-null control required',
+        )
+        add(
+            'graph:identity_control_present',
+            any(
+                item.get('config_name') == 'graph-identity'
+                for item in graph_items
+            ),
+            'graph-identity control required',
+        )
+        missing_summary_graph = sorted(GRAPH_MANIFEST_FIELDS - set(summary))
+        add(
+            'graph:summary_metadata_present',
+            not missing_summary_graph,
+            'ok'
+            if not missing_summary_graph
+            else ', '.join(missing_summary_graph),
+        )
+
+        for item in completed:
+            name = str(item.get('config_name') or 'graph')
+            missing_item_fields = sorted(GRAPH_MANIFEST_FIELDS - set(item))
+            add(
+                f'{name}:graph_metadata_present',
+                not missing_item_fields,
+                'ok' if not missing_item_fields else ', '.join(missing_item_fields),
+            )
+            add(
+                f'{name}:structural_task_metrics_present',
+                isinstance(item.get('task_metrics'), list)
+                and bool(item.get('task_metrics')),
+                str(len(item.get('task_metrics') or [])),
+            )
+            for metric_name in (
+                'task_eval_loss',
+                'task_perplexity',
+                'task_token_accuracy',
+            ):
+                value = item.get(metric_name)
+                add(
+                    f'{name}:{metric_name}_finite',
+                    _is_finite_number(value),
+                    str(value),
+                )
+            graph_parameters = item.get('graph_parameter_count')
+            graph_enabled = item.get('graph_enabled') is True
+            add(
+                f'{name}:graph_parameter_count_valid',
+                _is_finite_number(graph_parameters)
+                and float(graph_parameters) >= 0
+                and (not graph_enabled or float(graph_parameters) > 0),
+                str(graph_parameters),
+            )
+            if graph_enabled:
+                add(
+                    f'{name}:workspace_required',
+                    item.get('workspace_enabled') is True,
+                    str(item.get('workspace_enabled')),
+                )
+                cycles = item.get('graph_num_cycles')
+                add(
+                    f'{name}:graph_num_cycles_positive',
+                    _is_finite_number(cycles) and float(cycles) > 0,
+                    str(cycles),
+                )
+                for metric_name in (
+                    'graph_gate_mean',
+                    'graph_message_norm',
+                    'graph_slot_norm',
+                ):
+                    value = item.get(metric_name)
+                    add(
+                        f'{name}:{metric_name}_finite',
+                        _is_finite_number(value),
+                        str(value),
+                    )
+
+            manifest_paths = item.get('manifest_paths') or {}
+            for manifest_name, manifest_path in manifest_paths.items():
+                path = Path(str(manifest_path))
+                if path.exists() and path.name.endswith('.json'):
+                    try:
+                        manifest = _load_manifest(path)
+                        missing = sorted(GRAPH_MANIFEST_FIELDS - set(manifest))
+                    except (OSError, json.JSONDecodeError):
+                        missing = ['unreadable']
+                    add(
+                        f'{name}:{manifest_name}_graph_fields',
                         not missing,
                         'ok' if not missing else ', '.join(missing),
                     )

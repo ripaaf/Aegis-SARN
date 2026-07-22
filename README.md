@@ -25,9 +25,11 @@ The ambition is architectural, not rhetorical. The project does not claim that S
 
 **Phase 5 - latent workspace prototype implemented within the SARN-Dense research harness.** The bounded slot module is disabled by default and runs only when configured. It supports causal token-to-slot routing, optional gated writeback, transient cached slot state, diagnostics, matched null controls, sweeps, comparison reports, and correctness gates.
 
-SARN-Dense is still the only complete implemented model path. Phase 5 is not graph reasoning, persistent memory, human-like concepts, or SARN-Hybrid. Graph message passing, resettable working memory, MoE, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, multimodal modules, and advanced safety systems remain future work.
+**Phase 6 - graph message-passing prototype implemented within the SARN-Dense research harness.** The graph is disabled by default and operates only over enabled Phase 5 latent slots for a fixed small number of cycles. It includes dense, workspace-only, null-edge, frozen-identity, and learned-edge controls; structural toy tasks; diagnostics; sweeps; comparisons; and correctness-oriented gates.
 
-## Phase 1-5 Quickstart
+SARN-Dense is still the only complete implemented model path. Phase 6 is not resettable or persistent memory, formal symbolic logic, human-like reasoning, or SARN-Hybrid. Resettable working memory, MoE, SSM/Mamba, retrieval, tools, VLM, SAM, LAM, multimodal modules, and advanced safety systems remain future work.
+
+## Phase 1-6 Quickstart
 
 Python 3.11+ and PyTorch 2.2+ are supported. No GPU is required.
 
@@ -72,6 +74,10 @@ aegis-sarn eval-multiseed --checkpoint artifacts/phase2-check/train/sarn-dense-s
 .\.venv\Scripts\aegis-sarn.exe sweep-workspace --output-dir artifacts/phase5-workspace --device cpu --seed 123
 .\.venv\Scripts\aegis-sarn.exe compare-workspace --input artifacts/phase5-workspace --output-dir artifacts/reports
 .\.venv\Scripts\aegis-sarn.exe check-gates --summary artifacts/phase5-workspace/workspace-sweep-summary.json
+
+.\.venv\Scripts\aegis-sarn.exe sweep-graph --output-dir artifacts/phase6-graph --device cpu --seed 123
+.\.venv\Scripts\aegis-sarn.exe compare-graph --input artifacts/phase6-graph --output-dir artifacts/reports
+.\.venv\Scripts\aegis-sarn.exe check-gates --summary artifacts/phase6-graph/graph-sweep-summary.json
 ```
 
 `reproduce-phase2` creates the stable checkpoint path `artifacts/phase2-check/train/sarn-dense-smoke.pt` plus train, evaluation, benchmark, registry, and baseline-report artifacts. Generated artifacts remain local and are ignored by Git.
@@ -89,9 +95,14 @@ aegis-sarn check-gates --summary artifacts/phase4-attention/attention-sweep-summ
 aegis-sarn sweep-workspace --output-dir artifacts/phase5-workspace --device cpu --seed 123
 aegis-sarn compare-workspace --input artifacts/phase5-workspace --output-dir artifacts/reports
 aegis-sarn check-gates --summary artifacts/phase5-workspace/workspace-sweep-summary.json
+aegis-sarn sweep-graph --output-dir artifacts/phase6-graph --device cpu --seed 123
+aegis-sarn compare-graph --input artifacts/phase6-graph --output-dir artifacts/reports
+aegis-sarn check-gates --summary artifacts/phase6-graph/graph-sweep-summary.json
 ```
 
 Phase 5 is the first bounded latent-workspace experiment. It compares disabled, no-writeback, two-slot, and four-slot configurations while holding the tiny control model, data, seed, and run path fixed. The workspace is disabled by default. Its slots are transient learned tensor states, not graph nodes, memory records, concepts, or evidence that SARN-Hybrid works.
+
+Phase 6 is the first bounded graph message-passing experiment. It compares the dense and workspace-only controls with null-edge, frozen-identity, and one/two-cycle learned dense graphs. The graph is disabled by default, runs only over transient latent workspace slots, and records mechanical diagnostics and toy/structural metrics. It is not resettable memory, persistent memory, formal symbolic reasoning, proof of human-like reasoning, or evidence that SARN-Hybrid works.
 
 Run the deterministic CPU smoke trainer. It overfits a generated repeated-pattern batch, resumes the optimizer from its checkpoint, evaluates loss, generates tokens, and writes a JSON manifest:
 
@@ -128,7 +139,7 @@ Sampling is explicit and reproducible from a fixed seed:
 aegis-sarn run --checkpoint artifacts/phase1/sarn-dense-smoke.pt --prompt 'aegis sarn ' --strategy sample --temperature 0.8 --top-k 16 --top-p 0.9 --seed 7 --output-dir runs
 ```
 
-Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phases 2-5 also record runs in local registries, compare tiny dense, attention, and workspace configurations, check experiment gates, and generate Markdown/JSON reports. Workspace manifests record enablement, slot count, writeback mode, variant name, parameter count, gate mean, and latent-state norm. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and these checkpoints are not useful natural-language models. Generated artifacts are ignored by Git.
+Every train, evaluation, benchmark, and run command records resolved configuration, seed, package version, timestamp, device information, command arguments, metrics, trace events, and the Git commit when available. Phases 2-6 also record runs in local registries, compare tiny dense, attention, workspace, and graph configurations, check experiment gates, and generate Markdown/JSON reports. Graph manifests record enablement, cycle count, edge mode, optional top-k, variant name, parameters, gate mean, message norm, and slot norm. The byte tokenizer and toy corpus validate the pipeline; SARN-Dense is a baseline/control, and these checkpoints are not useful natural-language models. Generated artifacts are ignored by Git.
 
 ## Start Here
 

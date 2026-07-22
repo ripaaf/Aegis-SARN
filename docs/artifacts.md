@@ -15,6 +15,8 @@ Generated artifacts are reproducible outputs, not the source of truth. Source co
 - Phase 4 attention comparisons: artifacts/reports/attention-comparison.md and attention-comparison.json
 - Phase 5 workspace sweeps: artifacts/phase5-workspace/workspace-sweep-summary.md and workspace-sweep-summary.json
 - Phase 5 workspace comparisons: artifacts/reports/workspace-comparison.md and workspace-comparison.json
+- Phase 6 graph sweeps: artifacts/phase6-graph/graph-sweep-summary.md and graph-sweep-summary.json
+- Phase 6 graph comparisons: artifacts/reports/graph-comparison.md and graph-comparison.json
 
 ## Git Policy
 
@@ -40,4 +42,4 @@ The code prefers deterministic JSON/checkpoint content. On Windows workspaces wh
 
 ## Scope
 
-Artifact reports may contain local CPU timings and toy-task metrics. They are suitable for regression checks and baseline comparison. They are not language capability claims and do not imply that SARN-Hybrid, retrieval, tools, memory systems, or multimodal systems are implemented.
+Artifact reports may contain local CPU timings and toy/structural-task metrics. They are suitable for regression checks and controlled comparison. They are not language or reasoning capability claims and do not imply that SARN-Hybrid, retrieval, tools, resettable/persistent memory, or multimodal systems are implemented.

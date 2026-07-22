@@ -91,7 +91,7 @@ def benchmark_generation(
             'generated_tokens_per_repeat': generated_tokens // repeats,
             'repeats': repeats,
             'parameter_count': total_parameters,
-            'active_parameter_count': total_parameters,
+            'active_parameter_count': model.active_parameter_count(),
             'parameter_memory_bytes': parameter_bytes,
             'approximate_kv_cache_bytes': cache_bytes,
             'kv_cache_bytes_per_token': cache_bytes_per_token,
@@ -102,6 +102,7 @@ def benchmark_generation(
             'device': str(selected_device),
         }
         metrics.update(model.workspace_metrics())
+        metrics.update(model.graph_metrics())
         trace.emit('bench.completed', 'eval.benchmark', metrics)
     except Exception as error:
         trace.emit(
