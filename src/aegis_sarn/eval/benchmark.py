@@ -101,6 +101,7 @@ def benchmark_generation(
             'kv_group_size': model.config.kv_group_size,
             'device': str(selected_device),
         }
+        metrics.update(model.workspace_metrics())
         trace.emit('bench.completed', 'eval.benchmark', metrics)
     except Exception as error:
         trace.emit(

@@ -256,21 +256,32 @@ def test_readme_powershell_examples_do_not_use_linux_backslash() -> None:
         'check-gates --summary artifacts/phase4-attention/attention-sweep-summary.json'
         in section
     )
+    assert (
+        'sweep-workspace --output-dir artifacts/phase5-workspace --device cpu --seed 123'
+        in section
+    )
+    assert (
+        'check-gates --summary artifacts/phase5-workspace/workspace-sweep-summary.json'
+        in section
+    )
     assert not re.search(r'\\[ \t]*\r?\n', section)
 
 
-def test_no_sarn_hybrid_source_modules_are_required() -> None:
+def test_no_future_phase_source_modules_are_required() -> None:
     source_files = [path for path in Path('src').rglob('*.py')]
     forbidden_module_names = {
         'hybrid',
         'moe',
-        'workspace',
         'working_memory',
+        'graph',
         'ssm',
         'mamba',
         'retrieval',
+        'tools',
         'multimodal',
         'vlm',
+        'sam',
+        'lam',
     }
 
     assert source_files

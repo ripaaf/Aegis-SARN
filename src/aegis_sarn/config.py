@@ -26,6 +26,11 @@ class ModelConfig:
     rms_norm_eps: float = 1e-6
     ffn_type: Literal['gated', 'standard'] = 'gated'
     tie_embeddings: bool = True
+    workspace_enabled: bool = False
+    workspace_num_slots: int = 0
+    workspace_gated_writeback: bool = True
+    workspace_dropout: float = 0.0
+    workspace_read_mode: Literal['cross_attention', 'mean_pool'] = 'cross_attention'
 
     def __post_init__(self) -> None:
         positive = {
@@ -58,6 +63,18 @@ class ModelConfig:
             raise ConfigError('n_kv_heads must divide n_heads')
         if self.attention_type == 'mha' and resolved_kv_heads != self.n_heads:
             raise ConfigError('mha requires n_kv_heads to equal n_heads')
+        if self.workspace_num_slots < 0:
+            raise ConfigError('workspace_num_slots cannot be negative')
+        if self.workspace_enabled and self.workspace_num_slots <= 0:
+            raise ConfigError(
+                'workspace_num_slots must be positive when workspace is enabled'
+            )
+        if not 0.0 <= self.workspace_dropout < 1.0:
+            raise ConfigError('workspace_dropout must be in [0, 1)')
+        if self.workspace_read_mode not in ('cross_attention', 'mean_pool'):
+            raise ConfigError(
+                'workspace_read_mode must be cross_attention or mean_pool'
+            )
 
     @property
     def head_dim(self) -> int:
@@ -225,6 +242,30 @@ class RunManifest:
             payload['n_heads'] = n_heads
             payload['n_kv_heads'] = n_kv_heads
             payload['kv_group_size'] = n_heads // n_kv_heads
+            workspace_enabled = bool(
+                self.model_config.get('workspace_enabled', False)
+            )
+            configured_workspace_slots = int(
+                self.model_config.get('workspace_num_slots', 0)
+            )
+            workspace_num_slots = (
+                configured_workspace_slots if workspace_enabled else 0
+            )
+            workspace_gated_writeback = workspace_enabled and bool(
+                self.model_config.get('workspace_gated_writeback', True)
+            )
+            variant_name = self.command_args.get('workspace_variant_name')
+            if not variant_name:
+                if not workspace_enabled:
+                    variant_name = 'dense-control'
+                elif not workspace_gated_writeback:
+                    variant_name = 'workspace-null'
+                else:
+                    variant_name = f'workspace-slots{workspace_num_slots}'
+            payload['workspace_enabled'] = workspace_enabled
+            payload['workspace_num_slots'] = workspace_num_slots
+            payload['workspace_gated_writeback'] = workspace_gated_writeback
+            payload['workspace_variant_name'] = variant_name
         payload['timestamp'] = self.created_at
         payload['git_commit_hash'] = self.git_commit
         payload['config'] = {
@@ -244,5 +285,6 @@ class RunManifest:
             'SARN-Dense is the only implemented model path for this artifact.',
             'Toy generated data is for reproducibility checks, not language capability claims.',
             'SARN-Hybrid and advanced modules are not implemented in this run.',
+            'The optional latent workspace is not graph reasoning or persistent memory.',
         ]
         return payload

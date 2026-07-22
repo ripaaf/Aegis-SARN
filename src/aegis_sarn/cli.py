@@ -22,6 +22,7 @@ from aegis_sarn.config import (
 from aegis_sarn.eval import benchmark_generation, evaluate_tasks, evaluate_toy
 from aegis_sarn.phase3 import check_gates, compare_baselines, run_baseline_sweep
 from aegis_sarn.phase4 import compare_attention, run_attention_sweep
+from aegis_sarn.phase5 import compare_workspace, run_workspace_sweep
 from aegis_sarn.registry import record_manifest, registry_entries
 from aegis_sarn.reporting import write_baseline_report
 from aegis_sarn.sarn.checkpoint import load_checkpoint
@@ -165,6 +166,15 @@ def _parser() -> argparse.ArgumentParser:
         '--attention-type', choices=('mha', 'gqa'), default='mha'
     )
     train_parser.add_argument('--n-kv-heads', type=int)
+    train_parser.add_argument('--workspace-enabled', action='store_true')
+    train_parser.add_argument('--workspace-num-slots', type=int, default=0)
+    train_parser.add_argument('--workspace-no-writeback', action='store_true')
+    train_parser.add_argument('--workspace-dropout', type=float, default=0.0)
+    train_parser.add_argument(
+        '--workspace-read-mode',
+        choices=('cross_attention', 'mean_pool'),
+        default='cross_attention',
+    )
     train_parser.add_argument('--learning-rate', type=float, default=5e-3)
     train_parser.add_argument('--seed', type=int, default=7)
     train_parser.add_argument('--device', default='cpu')
@@ -291,6 +301,33 @@ def _parser() -> argparse.ArgumentParser:
     )
     attention_compare_parser.add_argument('--json', action='store_true')
 
+    workspace_sweep_parser = subparsers.add_parser(
+        'sweep-workspace',
+        help='compare matched dense and experimental latent-workspace variants',
+    )
+    workspace_sweep_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/phase5-workspace')
+    )
+    workspace_sweep_parser.add_argument('--device', default='cpu')
+    workspace_sweep_parser.add_argument('--seed', type=int, default=123)
+    workspace_sweep_parser.add_argument('--train-steps', type=int, default=8)
+    workspace_sweep_parser.add_argument('--batch-size', type=int, default=2)
+    workspace_sweep_parser.add_argument('--sequence-length', type=int, default=16)
+    workspace_sweep_parser.add_argument('--max-new-tokens', type=int, default=2)
+    workspace_sweep_parser.add_argument('--bench-repeats', type=int, default=1)
+    workspace_sweep_parser.add_argument('--json', action='store_true')
+
+    workspace_compare_parser = subparsers.add_parser(
+        'compare-workspace', help='compare Phase 5 workspace sweep outputs'
+    )
+    workspace_compare_parser.add_argument(
+        '--input', type=Path, default=Path('artifacts/phase5-workspace')
+    )
+    workspace_compare_parser.add_argument(
+        '--output-dir', type=Path, default=Path('artifacts/reports')
+    )
+    workspace_compare_parser.add_argument('--json', action='store_true')
+
     gates_parser = subparsers.add_parser(
         'check-gates', help='check basic experiment quality gates'
     )
@@ -379,6 +416,11 @@ def _train_command(arguments: argparse.Namespace) -> int:
         attention_type=arguments.attention_type,
         n_kv_heads=arguments.n_kv_heads,
         ffn_hidden_dim=arguments.d_model * 3,
+        workspace_enabled=arguments.workspace_enabled,
+        workspace_num_slots=arguments.workspace_num_slots,
+        workspace_gated_writeback=not arguments.workspace_no_writeback,
+        workspace_dropout=arguments.workspace_dropout,
+        workspace_read_mode=arguments.workspace_read_mode,
     )
     training_config = TrainingConfig(
         learning_rate=arguments.learning_rate,
@@ -855,6 +897,58 @@ def _compare_attention_command(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _sweep_workspace_command(arguments: argparse.Namespace) -> int:
+    summary = run_workspace_sweep(
+        output_dir=arguments.output_dir,
+        device=arguments.device,
+        seed=arguments.seed,
+        train_steps=arguments.train_steps,
+        batch_size=arguments.batch_size,
+        sequence_length=arguments.sequence_length,
+        max_new_tokens=arguments.max_new_tokens,
+        bench_repeats=arguments.bench_repeats,
+    )
+    payload = {
+        'run_id': summary['run_id'],
+        'summary_json_path': summary['artifacts']['summary_json'],
+        'summary_markdown_path': summary['artifacts']['summary_markdown'],
+        'registry_path': summary['artifacts']['registry'],
+        'metrics': summary['metrics'],
+        'results': summary['results'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense workspace sweep completed')
+        print('  variants: {}'.format(summary['metrics']['config_count']))
+        print('  summary: {}'.format(summary['artifacts']['summary_json']))
+        print('  markdown: {}'.format(summary['artifacts']['summary_markdown']))
+        print('  registry: {}'.format(summary['artifacts']['registry']))
+    return 0
+
+
+def _compare_workspace_command(arguments: argparse.Namespace) -> int:
+    summary = compare_workspace(arguments.input, arguments.output_dir)
+    payload = {
+        'run_id': summary['run_id'],
+        'comparison_json_path': summary['artifacts']['comparison_json'],
+        'comparison_markdown_path': summary['artifacts']['comparison_markdown'],
+        'winners': summary['winners'],
+    }
+    if arguments.json:
+        print(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        print('SARN-Dense workspace comparison generated')
+        print('  markdown: {}'.format(summary['artifacts']['comparison_markdown']))
+        print('  json: {}'.format(summary['artifacts']['comparison_json']))
+        print(
+            '  balanced: {}'.format(
+                summary['winners']['best_balanced_workspace']['config_name']
+            )
+        )
+    return 0
+
+
 def _check_gates_command(arguments: argparse.Namespace) -> int:
     result = check_gates(
         summary_path=arguments.summary,
@@ -901,6 +995,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _sweep_attention_command(arguments)
     if arguments.command == 'compare-attention':
         return _compare_attention_command(arguments)
+    if arguments.command == 'sweep-workspace':
+        return _sweep_workspace_command(arguments)
+    if arguments.command == 'compare-workspace':
+        return _compare_workspace_command(arguments)
     if arguments.command == 'check-gates':
         return _check_gates_command(arguments)
     raise AssertionError(f'unhandled command: {arguments.command}')

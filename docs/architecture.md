@@ -92,7 +92,20 @@ request
 
 SARN-Dense establishes correctness, training behavior, model/runtime contracts, and matched baselines. Phase 4 GQA remains an experimental attention configuration within this control path. It is not the final architectural identity and does not make SARN-Hybrid implemented.
 
-### 3.2 Long-Term SARN-Hybrid Path
+### 3.2 Phase 5 Experimental Workspace Path
+
+~~~text
+default:
+tokens -> SARN-Dense blocks -> final normalization -> decoder head
+
+workspace enabled:
+tokens -> SARN-Dense blocks -> bounded latent slots
+       -> optional gated writeback -> final normalization -> decoder head
+~~~
+
+The optional workspace performs learned tensor routing only. It is disabled by default, has no graph edges or message-passing cycles, and carries only transient slot state alongside the generation cache. It does not write persistent memory or enable retrieval, tools, policy changes, or side effects. Aegis continues to own all runtime governance and external effects.
+
+### 3.3 Long-Term SARN-Hybrid Path
 
 ```text
 Aegis Runtime
@@ -115,7 +128,7 @@ Aegis Runtime
 
 This diagram is the declared SARN-Hybrid construction target, not a claim of present implementation or success. Core stages and optional accelerators remain independently configurable and ablatable. A dense/attention-only route stays available for controls and hardware fallback. Full details are in [SARN model](model.md).
 
-### 3.3 Ownership Boundary
+### 3.4 Ownership Boundary
 
 SARN-Hybrid may emit logits, structured call proposals, latent-state summaries, uncertainty-related signals, and instrumentation hooks. It may update only bounded run/session neural state allocated by Aegis. It cannot commit persistent memory, execute tools, acquire resources, alter policy, or decide that a verifier passed.
 

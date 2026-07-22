@@ -13,6 +13,8 @@ Generated artifacts are reproducible outputs, not the source of truth. Source co
 
 - Phase 4 attention sweeps: artifacts/phase4-attention/attention-sweep-summary.md and attention-sweep-summary.json
 - Phase 4 attention comparisons: artifacts/reports/attention-comparison.md and attention-comparison.json
+- Phase 5 workspace sweeps: artifacts/phase5-workspace/workspace-sweep-summary.md and workspace-sweep-summary.json
+- Phase 5 workspace comparisons: artifacts/reports/workspace-comparison.md and workspace-comparison.json
 
 ## Git Policy
 

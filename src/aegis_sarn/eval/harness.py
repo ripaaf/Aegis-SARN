@@ -104,6 +104,7 @@ def evaluate_toy(
             'examples': batch_size,
             'sequence_length': sequence_length,
         }
+        metrics.update(model.workspace_metrics())
         trace.emit(
             'generation.completed',
             'eval.toy',

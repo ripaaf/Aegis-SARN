@@ -45,6 +45,14 @@ COMMON_MANIFEST_FIELDS = frozenset(
         'limitations',
     }
 )
+WORKSPACE_MANIFEST_FIELDS = frozenset(
+    {
+        'workspace_enabled',
+        'workspace_num_slots',
+        'workspace_gated_writeback',
+        'workspace_variant_name',
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -663,6 +671,101 @@ def check_gates(
             lower_cache = best_gqa_cache < mha_cache
             detail = f'best GQA {best_gqa_cache:g} < MHA {mha_cache:g}'
         add('attention:gqa_reduces_kv_cache', lower_cache, detail)
+
+    if summary.get('command') == 'sweep-workspace':
+        completed = [item for item in items if item.get('status') == 'completed']
+        dense_controls = [
+            item
+            for item in completed
+            if item.get('config_name') == 'dense-control'
+            and item.get('workspace_enabled') is False
+        ]
+        workspace_items = [
+            item
+            for item in completed
+            if item.get('workspace_enabled') is True
+        ]
+        add(
+            'workspace:dense_control_present',
+            bool(dense_controls),
+            f'{len(dense_controls)} completed dense control(s)',
+        )
+        add(
+            'workspace:enabled_variant_present',
+            bool(workspace_items),
+            f'{len(workspace_items)} completed workspace variant(s)',
+        )
+        missing_summary_workspace = sorted(
+            WORKSPACE_MANIFEST_FIELDS - set(summary)
+        )
+        add(
+            'workspace:summary_metadata_present',
+            not missing_summary_workspace,
+            'ok'
+            if not missing_summary_workspace
+            else ', '.join(missing_summary_workspace),
+        )
+
+        for item in completed:
+            name = str(item.get('config_name') or 'workspace')
+            missing_item_fields = sorted(WORKSPACE_MANIFEST_FIELDS - set(item))
+            add(
+                f'{name}:workspace_metadata_present',
+                not missing_item_fields,
+                'ok' if not missing_item_fields else ', '.join(missing_item_fields),
+            )
+            variant_name = item.get('workspace_variant_name')
+            add(
+                f'{name}:workspace_variant_name_present',
+                isinstance(variant_name, str) and bool(variant_name),
+                str(variant_name),
+            )
+            workspace_parameters = item.get('workspace_parameter_count')
+            expected_positive = item.get('workspace_enabled') is True
+            parameters_valid = (
+                _is_finite_number(workspace_parameters)
+                and float(workspace_parameters) >= 0
+                and (
+                    not expected_positive
+                    or float(workspace_parameters) > 0
+                )
+            )
+            add(
+                f'{name}:workspace_parameter_count_valid',
+                parameters_valid,
+                str(workspace_parameters),
+            )
+            if expected_positive:
+                slots = item.get('workspace_num_slots')
+                add(
+                    f'{name}:workspace_num_slots_positive',
+                    _is_finite_number(slots) and float(slots) > 0,
+                    str(slots),
+                )
+                for metric_name in ('workspace_gate_mean', 'workspace_norm'):
+                    value = item.get(metric_name)
+                    add(
+                        f'{name}:{metric_name}_finite',
+                        _is_finite_number(value),
+                        str(value),
+                    )
+
+            manifest_paths = item.get('manifest_paths') or {}
+            for manifest_name, manifest_path in manifest_paths.items():
+                path = Path(str(manifest_path))
+                if path.exists() and path.name.endswith('.json'):
+                    try:
+                        manifest = _load_manifest(path)
+                        missing = sorted(
+                            WORKSPACE_MANIFEST_FIELDS - set(manifest)
+                        )
+                    except (OSError, json.JSONDecodeError):
+                        missing = ['unreadable']
+                    add(
+                        f'{name}:{manifest_name}_workspace_fields',
+                        not missing,
+                        'ok' if not missing else ', '.join(missing),
+                    )
 
     passed = all(check['passed'] for check in checks)
     return {

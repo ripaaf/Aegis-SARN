@@ -40,7 +40,7 @@ At the system boundary, Aegis can attach retrieval evidence before a model call 
 - **Local attention:** optionally limits attention span or supplies structured locality when it improves the target workload.
 - **Selective SSM blocks:** provide an optional long-context/state-propagation path whose real kernel speed and quality must be measured against attention.
 - **Dense or sparse-expert FFN:** retains a dense control while testing whether conditional routing can activate useful capacity without proportional active compute. Total storage and communication remain part of the cost.
-- **Latent workspace:** provides persistent learned slots for bounded internal state. Slots are not called human concepts until causal evidence supports that interpretation.
+- **Latent workspace:** provides bounded learned slots for internal tensor routing. Slots are not called human concepts, and the Phase 5 transient state is not persistent memory.
 - **Sparse feature extraction:** SAEs initially observe frozen activations for interpretability. An online feature bridge is optional, read-only by default, and requires a separate causal acceptance test before influencing computation.
 - **Graph message passing:** updates relations among workspace slots for a bounded number of cycles. It is an explicit relational computation mechanism, not proof of logical reasoning.
 - **Resettable working memory:** stores temporary associations during a run or session without mutating released base weights; capacity, conflict, reset, isolation, and poisoning are tested.
@@ -176,9 +176,19 @@ Expert names such as “math” or “code” are not hard-coded claims. Special
 
 ## 7. Latent Workspace and Graph Track
 
-### Hypothesis
+### Phase 5 Latent Workspace Prototype
 
-A small persistent latent workspace updated for several internal cycles may improve systematic multi-step tasks or temporary state tracking compared with spending the same compute only on deeper token transformations.
+Phase 5 implements a small optional module after the final SARN-Dense decoder block and before final normalization. It accepts token states shaped [batch, sequence, model dimension], softly routes each token update across a fixed number of slots, reads a slot-derived context back into each token, and optionally applies a learned gated residual writeback.
+
+The update is causal: each position can use only the accumulated slot state from earlier positions and itself. During KV-cached generation, the final bounded slot tensor travels as transient cache state so incremental and full-prefix greedy generation remain comparable. It is discarded with the generation cache and is never written to an external service or a later session.
+
+The workspace is disabled by default. Configured variants include a no-writeback null control and normal two-slot/four-slot paths. Diagnostics report only mechanical quantities such as slot count, gate mean, workspace norm, parameters, and runtime.
+
+This prototype is not graph message passing, working memory, persistent memory, human-like concepts, or evidence of reasoning. It remains an experimental mechanism inside the SARN-Dense research harness, evaluated against the disabled control through matched sweeps, reports, and correctness gates.
+
+### Future Phase 6+ Hypothesis
+
+A future workspace-and-graph experiment may test whether several bounded internal cycles improve selected structural tasks compared with spending the same compute only on deeper token transformations. This is a proposal, not part of the Phase 5 implementation.
 
 ### Proposed Mechanism
 

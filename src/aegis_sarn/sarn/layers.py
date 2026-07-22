@@ -16,6 +16,7 @@ from aegis_sarn.config import ModelConfig
 class KVCache:
     key: Tensor
     value: Tensor
+    workspace_slots: Tensor | None = None
 
     def __post_init__(self) -> None:
         if self.key.ndim != 4 or self.value.ndim != 4:
@@ -24,6 +25,18 @@ class KVCache:
             raise ValueError('KV cache key/value shapes must match')
         if self.key.device != self.value.device or self.key.dtype != self.value.dtype:
             raise ValueError('KV cache key/value device and dtype must match')
+        if self.workspace_slots is not None:
+            if self.workspace_slots.ndim != 3:
+                raise ValueError(
+                    'workspace cache must have [batch, slots, model_dimension]'
+                )
+            if self.workspace_slots.shape[0] != self.key.shape[0]:
+                raise ValueError('workspace cache batch size must match KV cache')
+            if (
+                self.workspace_slots.device != self.key.device
+                or self.workspace_slots.dtype != self.key.dtype
+            ):
+                raise ValueError('workspace cache device/dtype must match KV cache')
 
     @property
     def sequence_length(self) -> int:
